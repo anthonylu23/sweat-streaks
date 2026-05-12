@@ -39,7 +39,7 @@ git push origin main --tags
 gh release create v0.1.0 \
   dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-arm64.zip \
   --title "Sweat Streaks v0.1.0" \
-  --notes-file dist/v0.1.0/release-notes.md
+  --notes-file docs/releases/v0.1.0.md
 ```
 
 Use a draft release if the artifact has not been manually launched yet.
@@ -54,8 +54,9 @@ SHA256=$(cut -d ' ' -f 1 dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-arm64.zip.sha256
 Update `Casks/sweat-streaks.rb` with the new version and checksum, then run:
 
 ```bash
-brew audit --cask --strict Casks/sweat-streaks.rb
-brew install --cask --no-quarantine ./Casks/sweat-streaks.rb
+brew tap anthonylu23/tap
+brew audit --cask --strict anthonylu23/tap/sweat-streaks
+brew install --cask anthonylu23/tap/sweat-streaks
 ```
 
 ## Future Signing Path
@@ -65,4 +66,4 @@ For a smoother public install, add Developer ID signing and notarization:
 - Submit the zip or app bundle with `xcrun notarytool`.
 - Staple the notarization ticket before zipping.
 
-Until then, keep README and release notes explicit that downloads are unsigned/ad-hoc signed.
+Until then, keep README and release notes explicit that downloads are unsigned.

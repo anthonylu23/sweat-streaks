@@ -1,8 +1,6 @@
 # Next Steps
 
 ## Immediate Validation
-- Validate the first public `v0.1.0` zip by unzipping and launching `Sweat Streaks.app`.
-- Validate the Homebrew cask from `anthonylu23/homebrew-tap` after the release URL and checksum are final.
 - Capture public screenshots from a clean profile with placeholder account names and no personal paths or provider errors.
 - Run the app with real GitHub and LeetCode usernames.
 - Verify GitHub and LeetCode tracking toggles suppress sync while preserving saved usernames/PAT state, then resume syncing when re-enabled.
@@ -25,7 +23,7 @@
 ## Product Polish
 - Gather real-world feedback on the compact menu bar icon-and-number labels and adjust if they are too wide or unclear.
 - Gather real-world feedback on the narrowed popover and adjust the width if the six-source picker feels cramped.
-- Verify the selected dark/light app icon variants in a packaged `.app` once distribution packaging is introduced.
+- Verify the selected dark/light app icon variants in a signed/notarized packaged `.app`.
 - Add snooze controls for risk reminders.
 
 ## Optional Later
