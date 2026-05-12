@@ -58,7 +58,7 @@
 ## UI Windowing Notes
 - The menu bar extra uses `.menuBarExtraStyle(.window)` because its content contains controls and opens editable settings.
 - The popover displays calendar-style heatmaps for GitHub contributions, LeetCode activity, and Combined activity. Square data uses the same effective day statuses as streak metrics, including manual override effects.
-- The collapsed menu bar label is derived from the same published streak metrics and today statuses as the popover. `MenuBarStreakDisplay` formats GitHub (`GH`), LeetCode (`LC`), and Combined (`All`) entries, and persisted settings can hide any source independently.
+- The collapsed menu bar label is derived from the same published streak metrics and today statuses as the popover. It renders configurable icon-and-number pairs using shared source icons for GitHub, LeetCode, and Combined, while `MenuBarStreakDisplay` owns item selection and accessibility labels.
 - The GitHub status row exposes the latest contribution-calendar day/status as hover help so users can distinguish raw commits from GitHub-counted contributions.
 - Settings are hosted in a reusable `NSWindow` with an `NSHostingController`, which avoids relying on SwiftUI's settings responder-chain action from a menu-bar-only surface.
 - The app uses an `NSApplicationDelegate` to set regular activation policy at launch so AppKit can give the settings window normal keyboard focus.

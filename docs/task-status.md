@@ -61,6 +61,7 @@
   - Added one-year calendar heatmaps for GitHub contribution squares, LeetCode activity squares, and Combined activity squares in the menu bar popover.
   - Hardened menu bar/settings windowing so the popover uses window-style presentation, the app has regular activation, and settings open in a key AppKit-backed window with focused editable SwiftUI fields.
   - Added configurable collapsed menu bar streak values for GitHub, LeetCode, and Combined.
+  - Switched source markers to shared logo-style icons for GitHub, LeetCode, and Combined, including the collapsed menu bar streak label.
   - Added GitHub contribution-calendar diagnostics in the status-row tooltip.
   - Clamped provider persistence to requested local-day ranges to avoid future UTC spillover rows.
   - Added tests for notification dedupe and active-status suppression.

@@ -12,7 +12,7 @@
 - Add a LeetCode fallback adapter if the public GraphQL profile calendar proves unreliable.
 
 ## Product Polish
-- Gather real-world feedback on the compact menu bar labels (`GH`, `LC`, `All`) and adjust if they are too wide or unclear.
+- Gather real-world feedback on the compact menu bar icon-and-number labels and adjust if they are too wide or unclear.
 - Add true intensity levels to heatmap squares if provider storage starts preserving daily contribution/submission counts.
 - Add snooze controls for risk reminders.
 

@@ -63,8 +63,8 @@ LeetCode sync uses LeetCode's public, unofficial GraphQL profile calendar. If th
 
 ## Menu Bar Display
 - Enable or hide `GitHub`, `LeetCode`, and `Combined` streak values from the Settings window.
-- The default collapsed status item shows all three current streak counts in compact form: `GH`, `LC`, and `All`.
-- If every source is hidden, the app keeps a flame icon in the menu bar without streak text.
+- The default collapsed status item shows all three current streak counts as compact icon-and-number pairs.
+- If every source is hidden, the app shows `Sweat` in the menu bar.
 - Hover the GitHub status dot for the latest GitHub contribution-calendar day/status. GitHub streaks only count activity that GitHub reports as contributions.
 
 ## Troubleshooting
@@ -92,7 +92,7 @@ swift test
 - `Sources/SweatStreaksApp/SyncEngine.swift`: sync orchestration and provider state tracking.
 - `Sources/SweatStreaksApp/NotificationEngine.swift`: once-per-day combined-streak risk notification logic.
 - `Sources/SweatStreaksApp/CurrentStreakAnchorPolicy.swift`: app-level end-of-day grace policy for current streak metrics.
-- `Sources/SweatStreaksApp/MenuBarStreakDisplay.swift`: compact status item formatting for configurable visible streaks.
+- `Sources/SweatStreaksApp/MenuBarStreakDisplay.swift`: compact status item selection and accessibility labels for configurable visible streaks.
 - `Sources/SweatStreaksCore`: domain types and streak logic.
 - `Sources/SweatStreaksPersistence`: SQLite schema/repository plus Keychain secret store.
 - `Tests`: core, persistence, and app sync/provider tests.
