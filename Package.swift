@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "SweatStreaks",
+    name: "sweat-streaks",
     platforms: [
         .macOS(.v13)
     ],
