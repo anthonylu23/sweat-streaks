@@ -3,6 +3,7 @@ import SweatStreaksCore
 import SweatStreaksPersistence
 import SweatStreaksProviderClaudeCode
 import SweatStreaksProviderCodex
+import SweatStreaksProviderCursor
 import SweatStreaksProviderGitHub
 import SweatStreaksProviderLeetCode
 
@@ -18,6 +19,7 @@ enum ProviderRegistry {
         trackLeetCodeProvider: Bool,
         trackCodexProvider: Bool,
         trackClaudeCodeProvider: Bool,
+        trackCursorProvider: Bool,
         secretStore: SecretStore,
         githubPATKey: String
     ) -> [ActivitySource: DefaultSyncService.ProviderFactory] {
@@ -53,6 +55,12 @@ enum ProviderRegistry {
             }
         }
 
+        if trackCursorProvider {
+            factories[.cursor] = {
+                CursorProvider()
+            }
+        }
+
         return factories
     }
 
@@ -62,6 +70,8 @@ enum ProviderRegistry {
             return CodexProvider.hasLocalActivityLogs()
         case .claudeCode:
             return ClaudeCodeProvider.hasLocalActivityLogs()
+        case .cursor:
+            return CursorProvider.hasLocalActivityEvidence()
         case .github, .leetcode, .combined:
             return false
         }

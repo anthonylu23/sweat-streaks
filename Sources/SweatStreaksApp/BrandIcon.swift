@@ -27,6 +27,13 @@ enum BrandIcon {
         ],
         fallback: makeImage(svgPath: claudeFallbackPath, viewBox: 24, inset: 1.4, style: .fill)
     )
+    static let cursor: NSImage = makeTemplateImage(
+        resourcePaths: [
+            "/Applications/Cursor.app/Contents/Resources/app/resources/darwin/trayTemplate@2x.png",
+            "/Applications/Cursor.app/Contents/Resources/app/resources/darwin/trayTemplate.png"
+        ],
+        fallback: makeImage(svgPath: cursorPath, viewBox: 24, inset: 1.2, style: .fill)
+    )
 
     enum DrawStyle {
         case fill
@@ -40,6 +47,7 @@ enum BrandIcon {
     private static let codexFallbackPath = "M4 5.5h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zm3 4l3 2.5-3 2.5m5 .5h5"
 
     private static let claudeFallbackPath = "M11.96 0 9.45 7.25 2.28 2.44 7.09 9.62 0 12.04l7.09 2.42-4.81 7.18 7.17-4.81L11.96 24l2.51-7.17 7.17 4.81-4.81-7.18L24 12.04l-7.17-2.42 4.81-7.18-7.17 4.81z"
+    private static let cursorPath = "M4 2 L4 18 L8 14 L11 20 L13.5 19 L10.5 13 L16 13 Z"
 
     private static func makeTemplateImage(resourcePaths: [String], fallback: NSImage) -> NSImage {
         for path in resourcePaths {

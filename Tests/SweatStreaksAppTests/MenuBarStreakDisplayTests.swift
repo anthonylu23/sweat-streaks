@@ -9,6 +9,7 @@ final class MenuBarStreakDisplayTests: XCTestCase {
             .leetcode: metrics(source: .leetcode, current: 6),
             .codex: metrics(source: .codex, current: 3),
             .claudeCode: metrics(source: .claudeCode, current: 2),
+            .cursor: metrics(source: .cursor, current: 5),
             .combined: metrics(source: .combined, current: 10)
         ]
         let statuses: [ActivitySource: DayStatus] = [
@@ -16,6 +17,7 @@ final class MenuBarStreakDisplayTests: XCTestCase {
             .leetcode: .inactive,
             .codex: .active,
             .claudeCode: .unknown,
+            .cursor: .active,
             .combined: .unknown
         ]
 
@@ -26,15 +28,16 @@ final class MenuBarStreakDisplayTests: XCTestCase {
             showLeetCode: false,
             showCodex: true,
             showClaudeCode: false,
+            showCursor: true,
             showCombined: true
         )
 
-        XCTAssertEqual(items.map(\.source), [.github, .codex, .combined])
-        XCTAssertEqual(items.map(\.current), [4, 3, 10])
-        XCTAssertEqual(items.map(\.status), [.active, .active, .unknown])
+        XCTAssertEqual(items.map(\.source), [.github, .codex, .cursor, .combined])
+        XCTAssertEqual(items.map(\.current), [4, 3, 5, 10])
+        XCTAssertEqual(items.map(\.status), [.active, .active, .active, .unknown])
         XCTAssertEqual(
             MenuBarStreakDisplay.accessibilityLabel(for: items),
-            "Sweat Streaks: GitHub 4-day streak, today active; Codex 3-day streak, today active; Combined 10-day streak, today unknown"
+            "Sweat Streaks: GitHub 4-day streak, today active; Codex 3-day streak, today active; Cursor 5-day streak, today active; Combined 10-day streak, today unknown"
         )
     }
 
@@ -46,11 +49,12 @@ final class MenuBarStreakDisplayTests: XCTestCase {
             showLeetCode: true,
             showCodex: true,
             showClaudeCode: true,
+            showCursor: true,
             showCombined: true
         )
 
-        XCTAssertEqual(items.map(\.source), [.github, .leetcode, .codex, .claudeCode, .combined])
-        XCTAssertEqual(items.map(\.current), [0, 0, 0, 0, 0])
+        XCTAssertEqual(items.map(\.source), [.github, .leetcode, .codex, .claudeCode, .cursor, .combined])
+        XCTAssertEqual(items.map(\.current), [0, 0, 0, 0, 0, 0])
     }
 
     func testAccessibilityLabelFallsBackWhenAllSourcesHidden() {
@@ -61,6 +65,7 @@ final class MenuBarStreakDisplayTests: XCTestCase {
             showLeetCode: false,
             showCodex: false,
             showClaudeCode: false,
+            showCursor: false,
             showCombined: false
         )
 
@@ -73,19 +78,23 @@ final class MenuBarStreakDisplayTests: XCTestCase {
             metrics: [
                 .github: metrics(source: .github, current: 4),
                 .leetcode: metrics(source: .leetcode, current: 6),
+                .cursor: metrics(source: .cursor, current: 3),
                 .combined: metrics(source: .combined, current: 8)
             ],
             statuses: [
                 .github: .active,
                 .leetcode: .active,
+                .cursor: .active,
                 .combined: .active
             ],
             trackGitHub: false,
             trackLeetCode: true,
+            trackCursor: false,
             showGitHub: true,
             showLeetCode: true,
             showCodex: false,
             showClaudeCode: false,
+            showCursor: true,
             showCombined: true
         )
 

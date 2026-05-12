@@ -35,14 +35,17 @@ final class AppModel: ObservableObject {
     @Published var refreshIntervalMinutes: Int = 60
     @Published var notificationsEnabled: Bool = false
     @Published var reminderHour: Int = 20
+    @Published var startOnLogin: Bool = false
     @Published var trackGitHubProvider: Bool = true
     @Published var trackLeetCodeProvider: Bool = true
     @Published var trackCodexProvider: Bool = false
     @Published var trackClaudeCodeProvider: Bool = false
+    @Published var trackCursorProvider: Bool = false
     @Published var showGitHubStreakInMenuBar: Bool = true
     @Published var showLeetCodeStreakInMenuBar: Bool = true
     @Published var showCodexStreakInMenuBar: Bool = true
     @Published var showClaudeCodeStreakInMenuBar: Bool = true
+    @Published var showCursorStreakInMenuBar: Bool = true
     @Published var showCombinedStreakInMenuBar: Bool = true
     @Published var githubPATInput: String = ""
     @Published var patStatusMessage: String?
@@ -51,8 +54,10 @@ final class AppModel: ObservableObject {
     let settingsStore: SQLiteSettingsStore
     let secretStore: SecretStore
     let notificationEngine: NotificationEngine
+    let launchAtLoginManager: LaunchAtLoginManaging
 
     private var refreshLoopTask: Task<Void, Never>?
+
     init() {
         do {
             let database = try DatabaseManager()
@@ -60,17 +65,29 @@ final class AppModel: ObservableObject {
             settingsStore = SQLiteSettingsStore(repository: repository)
             secretStore = KeychainSecretStore()
             notificationEngine = NotificationEngine(settingsStore: settingsStore)
+            launchAtLoginManager = SystemLaunchAtLoginManager()
         } catch {
             fatalError("Failed to initialize storage: \(error)")
         }
 
-        loadSettings()
-        refreshViewStateFromStorage()
-        startRefreshLoop()
+        finishInitialization(startBackgroundWork: true)
+    }
 
-        if hasAnyProviderConfiguration {
-            Task { await refreshNow(trigger: .launch) }
-        }
+    init(
+        repository: SweatRepository,
+        settingsStore: SQLiteSettingsStore,
+        secretStore: SecretStore,
+        notificationEngine: NotificationEngine,
+        launchAtLoginManager: LaunchAtLoginManaging,
+        startBackgroundWork: Bool = false
+    ) {
+        self.repository = repository
+        self.settingsStore = settingsStore
+        self.secretStore = secretStore
+        self.notificationEngine = notificationEngine
+        self.launchAtLoginManager = launchAtLoginManager
+
+        finishInitialization(startBackgroundWork: startBackgroundWork)
     }
 
     deinit {
@@ -97,6 +114,10 @@ final class AppModel: ObservableObject {
         trackClaudeCodeProvider && ProviderRegistry.hasLocalData(for: .claudeCode)
     }
 
+    var isCursorConnected: Bool {
+        trackCursorProvider && ProviderRegistry.hasLocalData(for: .cursor)
+    }
+
     var isOnboardingNeeded: Bool {
         let githubBlank = githubUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let leetCodeBlank = leetCodeUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -104,6 +125,7 @@ final class AppModel: ObservableObject {
             && (!trackLeetCodeProvider || leetCodeBlank)
             && !trackCodexProvider
             && !trackClaudeCodeProvider
+            && !trackCursorProvider
     }
 
     func refreshNow() {
@@ -186,14 +208,18 @@ final class AppModel: ObservableObject {
             try settingsStore.set(String(refreshIntervalMinutes), for: .refreshIntervalMinutes)
             try settingsStore.set(notificationsEnabled ? "true" : "false", for: .notificationsEnabled)
             try settingsStore.set(String(reminderHour), for: .reminderHour)
+            try launchAtLoginManager.setEnabled(startOnLogin)
+            try settingsStore.set(startOnLogin ? "true" : "false", for: .startOnLogin)
             try settingsStore.set(trackGitHubProvider ? "true" : "false", for: .trackGitHubProvider)
             try settingsStore.set(trackLeetCodeProvider ? "true" : "false", for: .trackLeetCodeProvider)
             try settingsStore.set(trackCodexProvider ? "true" : "false", for: .trackCodexProvider)
             try settingsStore.set(trackClaudeCodeProvider ? "true" : "false", for: .trackClaudeCodeProvider)
+            try settingsStore.set(trackCursorProvider ? "true" : "false", for: .trackCursorProvider)
             try settingsStore.set(showGitHubStreakInMenuBar ? "true" : "false", for: .showGitHubStreakInMenuBar)
             try settingsStore.set(showLeetCodeStreakInMenuBar ? "true" : "false", for: .showLeetCodeStreakInMenuBar)
             try settingsStore.set(showCodexStreakInMenuBar ? "true" : "false", for: .showCodexStreakInMenuBar)
             try settingsStore.set(showClaudeCodeStreakInMenuBar ? "true" : "false", for: .showClaudeCodeStreakInMenuBar)
+            try settingsStore.set(showCursorStreakInMenuBar ? "true" : "false", for: .showCursorStreakInMenuBar)
             try settingsStore.set(showCombinedStreakInMenuBar ? "true" : "false", for: .showCombinedStreakInMenuBar)
 
             let pat = githubPATInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -247,14 +273,17 @@ final class AppModel: ObservableObject {
                 try settingsStore.set("20", for: .reminderHour)
             }
 
+            startOnLogin = try boolSetting(.startOnLogin, default: launchAtLoginManager.isEnabled)
             showGitHubStreakInMenuBar = try boolSetting(.showGitHubStreakInMenuBar, default: true)
             showLeetCodeStreakInMenuBar = try boolSetting(.showLeetCodeStreakInMenuBar, default: true)
             trackGitHubProvider = try boolSetting(.trackGitHubProvider, default: true)
             trackLeetCodeProvider = try boolSetting(.trackLeetCodeProvider, default: true)
             trackCodexProvider = try boolSetting(.trackCodexProvider, default: ProviderRegistry.hasLocalData(for: .codex))
             trackClaudeCodeProvider = try boolSetting(.trackClaudeCodeProvider, default: ProviderRegistry.hasLocalData(for: .claudeCode))
+            trackCursorProvider = try boolSetting(.trackCursorProvider, default: ProviderRegistry.hasLocalData(for: .cursor))
             showCodexStreakInMenuBar = try boolSetting(.showCodexStreakInMenuBar, default: true)
             showClaudeCodeStreakInMenuBar = try boolSetting(.showClaudeCodeStreakInMenuBar, default: true)
+            showCursorStreakInMenuBar = try boolSetting(.showCursorStreakInMenuBar, default: true)
             showCombinedStreakInMenuBar = try boolSetting(.showCombinedStreakInMenuBar, default: true)
             enforceMenuBarVisibilityForTrackedProviders()
 
@@ -280,6 +309,19 @@ final class AppModel: ObservableObject {
         default:
             try settingsStore.set(defaultValue ? "true" : "false", for: key)
             return defaultValue
+        }
+    }
+
+    private func finishInitialization(startBackgroundWork: Bool) {
+        loadSettings()
+        refreshViewStateFromStorage()
+
+        guard startBackgroundWork else { return }
+
+        startRefreshLoop()
+
+        if hasAnyProviderConfiguration {
+            Task { await refreshNow(trigger: .launch) }
         }
     }
 
@@ -499,7 +541,7 @@ final class AppModel: ObservableObject {
             && trackGitHubProvider
         let leetCodeConfigured = !leetCodeUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && trackLeetCodeProvider
-        return githubConfigured || leetCodeConfigured || trackCodexProvider || trackClaudeCodeProvider
+        return githubConfigured || leetCodeConfigured || trackCodexProvider || trackClaudeCodeProvider || trackCursorProvider
     }
 
     var trackedProviderSources: [ActivitySource] {
@@ -507,7 +549,8 @@ final class AppModel: ObservableObject {
             (ActivitySource.github, trackGitHubProvider),
             (.leetcode, trackLeetCodeProvider),
             (.codex, trackCodexProvider),
-            (.claudeCode, trackClaudeCodeProvider)
+            (.claudeCode, trackClaudeCodeProvider),
+            (.cursor, trackCursorProvider)
         ].compactMap { source, isTracked in
             isTracked ? source : nil
         }
@@ -530,6 +573,7 @@ final class AppModel: ObservableObject {
             trackLeetCodeProvider: trackLeetCodeProvider,
             trackCodexProvider: trackCodexProvider,
             trackClaudeCodeProvider: trackClaudeCodeProvider,
+            trackCursorProvider: trackCursorProvider,
             secretStore: secretStore,
             githubPATKey: Self.githubPATKey
         )
@@ -547,6 +591,9 @@ final class AppModel: ObservableObject {
         }
         if !trackClaudeCodeProvider {
             showClaudeCodeStreakInMenuBar = false
+        }
+        if !trackCursorProvider {
+            showCursorStreakInMenuBar = false
         }
     }
 
@@ -611,6 +658,8 @@ final class AppModel: ObservableObject {
             return offset % 6 == 0 ? .inactive : .active
         case .claudeCode:
             return offset % 8 == 0 ? .unknown : .active
+        case .cursor:
+            return offset % 9 == 0 ? .inactive : .active
         case .combined:
             return .unknown
         }

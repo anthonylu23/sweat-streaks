@@ -12,6 +12,7 @@ final class ProviderRegistryTests: XCTestCase {
             trackLeetCodeProvider: true,
             trackCodexProvider: false,
             trackClaudeCodeProvider: false,
+            trackCursorProvider: false,
             secretStore: InMemorySecretStore(values: [AppModel.githubPATKey: "token"]),
             githubPATKey: AppModel.githubPATKey
         )
@@ -20,6 +21,7 @@ final class ProviderRegistryTests: XCTestCase {
         XCTAssertNotNil(factories[.leetcode])
         XCTAssertNil(factories[.codex])
         XCTAssertNil(factories[.claudeCode])
+        XCTAssertNil(factories[.cursor])
     }
 
     @MainActor
@@ -31,11 +33,29 @@ final class ProviderRegistryTests: XCTestCase {
             trackLeetCodeProvider: false,
             trackCodexProvider: false,
             trackClaudeCodeProvider: false,
+            trackCursorProvider: false,
             secretStore: InMemorySecretStore(),
             githubPATKey: AppModel.githubPATKey
         )
 
         XCTAssertNil(factories[.leetcode])
+    }
+
+    @MainActor
+    func testCursorTrackingToggleControlsProviderFactory() {
+        let factories = ProviderRegistry.makeProviderFactories(
+            githubUsername: "",
+            leetCodeUsername: "",
+            trackGitHubProvider: false,
+            trackLeetCodeProvider: false,
+            trackCodexProvider: false,
+            trackClaudeCodeProvider: false,
+            trackCursorProvider: true,
+            secretStore: InMemorySecretStore(),
+            githubPATKey: AppModel.githubPATKey
+        )
+
+        XCTAssertNotNil(factories[.cursor])
     }
 }
 

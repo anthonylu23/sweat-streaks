@@ -235,6 +235,20 @@ final class SyncEngineTests: XCTestCase {
                 )
             ]
         )
+        let cursorScript = ProviderScript(
+            events: [
+                .success(
+                    ProviderFetchResult(
+                        source: .cursor,
+                        days: [day: .active],
+                        fetchedRange: range,
+                        rateLimitedUntil: nil,
+                        authError: false,
+                        warning: nil
+                    )
+                )
+            ]
+        )
 
         let service = DefaultSyncService(
             repository: repository,
@@ -243,7 +257,8 @@ final class SyncEngineTests: XCTestCase {
                 .github: { ScriptedProvider(source: .github, script: githubScript) },
                 .leetcode: { ScriptedProvider(source: .leetcode, script: leetCodeScript) },
                 .codex: { ScriptedProvider(source: .codex, script: codexScript) },
-                .claudeCode: { ScriptedProvider(source: .claudeCode, script: claudeCodeScript) }
+                .claudeCode: { ScriptedProvider(source: .claudeCode, script: claudeCodeScript) },
+                .cursor: { ScriptedProvider(source: .cursor, script: cursorScript) }
             ],
             sleepFunction: { _ in },
             jitterFunction: { _ in 0 }
@@ -256,12 +271,14 @@ final class SyncEngineTests: XCTestCase {
         let leetCodeState = try repository.fetchProviderSyncState(source: .leetcode)
         let codexState = try repository.fetchProviderSyncState(source: .codex)
         let claudeCodeState = try repository.fetchProviderSyncState(source: .claudeCode)
+        let cursorState = try repository.fetchProviderSyncState(source: .cursor)
 
         XCTAssertEqual(combined?.status, .active)
         XCTAssertNotNil(githubState?.lastSuccessAt)
         XCTAssertNotNil(leetCodeState?.lastSuccessAt)
         XCTAssertNotNil(codexState?.lastSuccessAt)
         XCTAssertNotNil(claudeCodeState?.lastSuccessAt)
+        XCTAssertNotNil(cursorState?.lastSuccessAt)
     }
 
     func testCombinedUsesOnlyEnabledProviderTrackingSourcesDuringSync() async throws {

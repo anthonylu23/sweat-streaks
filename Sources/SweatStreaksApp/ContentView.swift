@@ -7,7 +7,7 @@ struct ContentView: View {
     @State private var selectedSource: ActivitySource = .combined
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.m) {
+        VStack(alignment: .leading, spacing: 10) {
             if model.isOnboardingNeeded {
                 emptyStateCard
             } else {
@@ -17,8 +17,8 @@ struct ContentView: View {
             }
             footerBar
         }
-        .padding(DS.Spacing.m)
-        .frame(width: 620)
+        .padding(10)
+        .frame(width: 560)
         .onChange(of: model.trackedProviderSources) { trackedSources in
             if selectedSource != .combined && !trackedSources.contains(selectedSource) {
                 selectedSource = .combined
@@ -39,9 +39,9 @@ struct ContentView: View {
             ZStack {
                 Circle()
                     .fill(flameTint.opacity(0.18))
-                    .frame(width: 64, height: 64)
+                    .frame(width: 56, height: 56)
                 flameSymbol
-                    .font(.system(size: 32, weight: .semibold))
+                    .font(.system(size: 30, weight: .semibold))
                     .foregroundStyle(flameTint)
             }
 
@@ -61,13 +61,13 @@ struct ContentView: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: DS.Spacing.s) {
+            VStack(alignment: .trailing, spacing: 6) {
                 ForEach(model.trackedProviderSources + [.combined], id: \.self) { source in
                     todayRow(source: source)
                 }
             }
         }
-        .appCard()
+        .appCard(padding: 10)
     }
 
     @ViewBuilder
@@ -193,6 +193,7 @@ struct ContentView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .controlSize(.small)
             .labelsHidden()
             .frame(maxWidth: .infinity)
             Spacer()
@@ -216,7 +217,7 @@ struct ContentView: View {
         switch source {
         case .combined:
             return model.activitySquares
-        case .github, .leetcode, .codex, .claudeCode:
+        case .github, .leetcode, .codex, .claudeCode, .cursor:
             return model.contributionSquares[source] ?? []
         }
     }
@@ -237,7 +238,7 @@ struct ContentView: View {
             VStack(spacing: DS.Spacing.xs) {
                 Text("Start your streak")
                     .font(DS.Typography.title)
-                Text("Connect an account or enable local agentic tool tracking to begin tracking daily activity.")
+                Text("Connect an account or enable local tool tracking to begin tracking daily activity.")
                     .font(DS.Typography.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -387,16 +388,17 @@ private struct ContributionHeatmapCard: View {
     let squares: [ActivitySquare]
     let metrics: StreakMetrics?
 
-    private let squareSize: CGFloat = 9
-    private let gap: CGFloat = 2
+    private let squareSize: CGFloat = 14
+    private let gap: CGFloat = 3
     private let weekdayLabelWidth: CGFloat = 28
     private let monthLabelHeight: CGFloat = 13
-    private let minimumMonthLabelSpacing: CGFloat = 34
-    private let visibleWeeks: Int = 53
+    private let minimumMonthLabelSpacing: CGFloat = 52
+    private let visibleWeeks: Int = 16
 
     private var weekStride: CGFloat { squareSize + gap }
     private var graphWidth: CGFloat { CGFloat(max(weeks.count, 1)) * weekStride - gap }
     private var graphHeight: CGFloat { CGFloat(7) * weekStride - gap }
+    private var heatmapBlockWidth: CGFloat { weekdayLabelWidth + DS.Spacing.xs + graphWidth }
     private var activeDays: Int { sortedSquares.filter { $0.status == .active }.count }
     private var weeks: [HeatmapWeek] { buildWeeks() }
     private var monthLabels: [HeatmapMonthLabel] { buildMonthLabels() }
@@ -404,21 +406,12 @@ private struct ContributionHeatmapCard: View {
     private var activeColor: Color { DS.Palette.active(for: source) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.m) {
+        VStack(alignment: .leading, spacing: DS.Spacing.s) {
             header
-
-            HStack(alignment: .top, spacing: 6) {
-                weekdayLabels
-                    .padding(.top, monthLabelHeight)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    monthHeader
-                    heatmapGrid
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
+            heatmapBlock
         }
-        .appCard()
+        .frame(maxWidth: .infinity, alignment: .center)
+        .appCard(padding: DS.Spacing.m)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(sourceTitle(source)) heatmap, last \(visibleWeeks) weeks")
         .accessibilityValue("\(activeDays) active days. Current streak \(metrics?.current ?? 0). Longest streak \(metrics?.longest ?? 0).")
@@ -434,6 +427,20 @@ private struct ContributionHeatmapCard: View {
             divider
             stat(label: "Longest", value: "\(metrics?.longest ?? 0)")
         }
+        .frame(width: heatmapBlockWidth, alignment: .leading)
+    }
+
+    private var heatmapBlock: some View {
+        HStack(alignment: .top, spacing: DS.Spacing.xs) {
+            weekdayLabels
+                .padding(.top, monthLabelHeight)
+
+            VStack(alignment: .leading, spacing: DS.Spacing.xs) {
+                monthHeader
+                heatmapGrid
+            }
+        }
+        .frame(width: heatmapBlockWidth, alignment: .leading)
     }
 
     private var divider: some View {
@@ -721,6 +728,10 @@ struct SettingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             Form {
+                Section("General") {
+                    Toggle("Start on login", isOn: $model.startOnLogin)
+                }
+
                 Section {
                     Toggle("Track GitHub activity", isOn: $model.trackGitHubProvider)
 
@@ -773,14 +784,26 @@ struct SettingsView: View {
 
                 Section {
                     Toggle("Track Codex local activity", isOn: $model.trackCodexProvider)
+                } header: {
+                    accountHeader(source: .codex, connected: model.isCodexConnected)
+                } footer: {
+                    Text("Reads local Codex session timestamps only. Auth tokens and prompt contents are not stored or displayed.")
+                }
+
+                Section {
                     Toggle("Track Claude Code local activity", isOn: $model.trackClaudeCodeProvider)
                 } header: {
-                    HStack(spacing: DS.Spacing.m) {
-                        accountHeader(source: .codex, connected: model.isCodexConnected)
-                        accountHeader(source: .claudeCode, connected: model.isClaudeCodeConnected)
-                    }
+                    accountHeader(source: .claudeCode, connected: model.isClaudeCodeConnected)
                 } footer: {
-                    Text("Local tool tracking reads session/history timestamps only. Auth tokens and prompt contents are not stored or displayed.")
+                    Text("Reads local Claude Code history/project timestamps only. Auth tokens and prompt contents are not stored or displayed.")
+                }
+
+                Section {
+                    Toggle("Track Cursor local activity", isOn: $model.trackCursorProvider)
+                } header: {
+                    accountHeader(source: .cursor, connected: model.isCursorConnected)
+                } footer: {
+                    Text("Reads local Cursor AI usage timestamps and file metadata only. Prompt, chat, and edited file contents are not stored or displayed.")
                 }
 
                 Section("Sync") {
@@ -805,6 +828,8 @@ struct SettingsView: View {
                         .disabled(!model.trackCodexProvider)
                     Toggle("Show Claude Code streak", isOn: $model.showClaudeCodeStreakInMenuBar)
                         .disabled(!model.trackClaudeCodeProvider)
+                    Toggle("Show Cursor streak", isOn: $model.showCursorStreakInMenuBar)
+                        .disabled(!model.trackCursorProvider)
                     Toggle("Show Combined streak", isOn: $model.showCombinedStreakInMenuBar)
                 }
             }
@@ -820,6 +845,9 @@ struct SettingsView: View {
                 model.enforceMenuBarVisibilityForTrackedProviders()
             }
             .onChange(of: model.trackClaudeCodeProvider) { _ in
+                model.enforceMenuBarVisibilityForTrackedProviders()
+            }
+            .onChange(of: model.trackCursorProvider) { _ in
                 model.enforceMenuBarVisibilityForTrackedProviders()
             }
 

@@ -17,10 +17,12 @@ enum MenuBarStreakDisplay {
         trackLeetCode: Bool = true,
         trackCodex: Bool = true,
         trackClaudeCode: Bool = true,
+        trackCursor: Bool = true,
         showGitHub: Bool,
         showLeetCode: Bool,
         showCodex: Bool,
         showClaudeCode: Bool,
+        showCursor: Bool,
         showCombined: Bool
     ) -> [MenuBarStreakItem] {
         [
@@ -28,6 +30,7 @@ enum MenuBarStreakDisplay {
             (.leetcode, trackLeetCode && showLeetCode),
             (.codex, trackCodex && showCodex),
             (.claudeCode, trackClaudeCode && showClaudeCode),
+            (.cursor, trackCursor && showCursor),
             (.combined, showCombined)
         ].compactMap { source, isVisible in
             guard isVisible else { return nil }

@@ -28,10 +28,12 @@ private struct MenuBarLabel: View {
             trackLeetCode: model.trackLeetCodeProvider,
             trackCodex: model.trackCodexProvider,
             trackClaudeCode: model.trackClaudeCodeProvider,
+            trackCursor: model.trackCursorProvider,
             showGitHub: model.showGitHubStreakInMenuBar,
             showLeetCode: model.showLeetCodeStreakInMenuBar,
             showCodex: model.showCodexStreakInMenuBar,
             showClaudeCode: model.showClaudeCodeStreakInMenuBar,
+            showCursor: model.showCursorStreakInMenuBar,
             showCombined: model.showCombinedStreakInMenuBar
         )
 
