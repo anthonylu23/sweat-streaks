@@ -2,20 +2,33 @@ import Foundation
 
 public enum CombinedStatusResolver {
     public static func derive(github: DayStatus, leetcode: DayStatus) -> DayStatus {
-        if github == .inactive || leetcode == .inactive {
-            return .inactive
-        }
-        if github == .active && leetcode == .active {
-            return .active
-        }
-        return .unknown
+        derive(
+            effectiveStatuses: [
+                .github: github,
+                .leetcode: leetcode
+            ],
+            requiredSources: ActivitySource.combinedRequiredSources
+        )
     }
 
     public static func derive(effectiveStatuses: [ActivitySource: DayStatus]) -> DayStatus {
-        derive(
-            github: effectiveStatuses[.github] ?? .unknown,
-            leetcode: effectiveStatuses[.leetcode] ?? .unknown
-        )
+        derive(effectiveStatuses: effectiveStatuses, requiredSources: ActivitySource.combinedRequiredSources)
+    }
+
+    public static func derive(
+        effectiveStatuses: [ActivitySource: DayStatus],
+        requiredSources: [ActivitySource]
+    ) -> DayStatus {
+        guard !requiredSources.isEmpty else { return .unknown }
+
+        let requiredStatuses = requiredSources.map { effectiveStatuses[$0] ?? .unknown }
+        if requiredStatuses.contains(.inactive) {
+            return .inactive
+        }
+        if requiredStatuses.allSatisfy({ $0 == .active }) {
+            return .active
+        }
+        return .unknown
     }
 }
 

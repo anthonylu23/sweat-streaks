@@ -1,7 +1,8 @@
 import Foundation
 import XCTest
-@testable import SweatStreaksApp
 @testable import SweatStreaksCore
+@testable import SweatStreaksProviderLeetCode
+import SweatStreaksProviderSupport
 
 final class LeetCodeProviderTests: XCTestCase {
     func testSubmissionCalendarMappingFillsInactiveDays() async throws {

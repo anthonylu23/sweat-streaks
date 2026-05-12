@@ -387,10 +387,11 @@ private struct ContributionHeatmapCard: View {
     let squares: [ActivitySquare]
     let metrics: StreakMetrics?
 
-    private let squareSize: CGFloat = 13
-    private let gap: CGFloat = 3
+    private let squareSize: CGFloat = 12
+    private let gap: CGFloat = 2.5
     private let weekdayLabelWidth: CGFloat = 22
     private let monthLabelHeight: CGFloat = 13
+    private let minimumMonthLabelSpacing: CGFloat = 28
     private let visibleWeeks: Int = 12
 
     private var weekStride: CGFloat { squareSize + gap }
@@ -414,7 +415,6 @@ private struct ContributionHeatmapCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     monthHeader
                     heatmapGrid
-                    legendRow
                 }
                 Spacer()
             }
@@ -462,7 +462,7 @@ private struct ContributionHeatmapCard: View {
                 Text(label.title)
                     .font(DS.Typography.captionStrong)
                     .foregroundStyle(.secondary)
-                    .offset(x: CGFloat(label.weekIndex) * weekStride)
+                    .offset(x: label.xOffset)
             }
         }
         .frame(width: graphWidth, height: monthLabelHeight, alignment: .leading)
@@ -494,34 +494,6 @@ private struct ContributionHeatmapCard: View {
                     .frame(width: weekdayLabelWidth, height: squareSize, alignment: .trailing)
             }
         }
-    }
-
-    private var legendRow: some View {
-        HStack(spacing: 6) {
-            Spacer()
-            Text("Less")
-                .font(DS.Typography.caption)
-                .foregroundStyle(.secondary)
-            ForEach(legendColors.indices, id: \.self) { index in
-                RoundedRectangle(cornerRadius: DS.Radius.square)
-                    .fill(legendColors[index])
-                    .frame(width: squareSize, height: squareSize)
-            }
-            Text("More")
-                .font(DS.Typography.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(width: graphWidth, alignment: .trailing)
-    }
-
-    private var legendColors: [Color] {
-        [
-            DS.Palette.inactiveSquare,
-            activeColor.opacity(0.30),
-            activeColor.opacity(0.55),
-            activeColor.opacity(0.80),
-            activeColor
-        ]
     }
 
     private var emptySquare: some View {
@@ -619,12 +591,13 @@ private struct ContributionHeatmapCard: View {
 
         while currentMonthStart <= finalMonthStart {
             let visibleDate = max(currentMonthStart, firstDate)
-            let weekIndex = max((calendar.dateComponents([.day], from: weekStart, to: visibleDate).day ?? 0) / 7, 0)
+            let dayOffset = calendar.dateComponents([.day], from: weekStart, to: visibleDate).day ?? 0
+            let xOffset = CGFloat(max(dayOffset / 7, 0)) * weekStride
             labels.append(
                 HeatmapMonthLabel(
                     id: "\(calendar.component(.year, from: currentMonthStart))-\(calendar.component(.month, from: currentMonthStart))",
                     title: monthFormatter.string(from: currentMonthStart),
-                    weekIndex: weekIndex
+                    xOffset: xOffset
                 )
             )
 
@@ -634,7 +607,18 @@ private struct ContributionHeatmapCard: View {
             currentMonthStart = nextMonth
         }
 
-        return labels
+        return labels.reduce(into: []) { visibleLabels, label in
+            guard let previousLabel = visibleLabels.last else {
+                visibleLabels.append(label)
+                return
+            }
+
+            if label.xOffset - previousLabel.xOffset >= minimumMonthLabelSpacing {
+                visibleLabels.append(label)
+            } else if previousLabel.xOffset == 0 {
+                visibleLabels[visibleLabels.count - 1] = label
+            }
+        }
     }
 
     private var sortedSquares: [ActivitySquare] {
@@ -680,7 +664,7 @@ private struct HeatmapWeek: Identifiable {
 private struct HeatmapMonthLabel: Identifiable {
     let id: String
     let title: String
-    let weekIndex: Int
+    let xOffset: CGFloat
 }
 
 // MARK: - Settings window presenter

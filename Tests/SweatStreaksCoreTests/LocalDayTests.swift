@@ -39,4 +39,24 @@ final class LocalDayTests: XCTestCase {
         XCTAssertEqual(CombinedStatusResolver.derive(github: .unknown, leetcode: .active), .unknown)
         XCTAssertEqual(CombinedStatusResolver.derive(github: .unknown, leetcode: .unknown), .unknown)
     }
+
+    func testCombinedStatusUsesRequiredSources() {
+        let statuses: [ActivitySource: DayStatus] = [
+            .github: .active,
+            .leetcode: .unknown
+        ]
+
+        XCTAssertEqual(
+            CombinedStatusResolver.derive(effectiveStatuses: statuses, requiredSources: [.github]),
+            .active
+        )
+        XCTAssertEqual(
+            CombinedStatusResolver.derive(effectiveStatuses: statuses, requiredSources: [.github, .leetcode]),
+            .unknown
+        )
+        XCTAssertEqual(
+            CombinedStatusResolver.derive(effectiveStatuses: statuses, requiredSources: []),
+            .unknown
+        )
+    }
 }

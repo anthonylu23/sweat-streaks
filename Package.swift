@@ -9,6 +9,9 @@ let package = Package(
     products: [
         .library(name: "SweatStreaksCore", targets: ["SweatStreaksCore"]),
         .library(name: "SweatStreaksPersistence", targets: ["SweatStreaksPersistence"]),
+        .library(name: "SweatStreaksProviderSupport", targets: ["SweatStreaksProviderSupport"]),
+        .library(name: "SweatStreaksProviderGitHub", targets: ["SweatStreaksProviderGitHub"]),
+        .library(name: "SweatStreaksProviderLeetCode", targets: ["SweatStreaksProviderLeetCode"]),
         .executable(name: "SweatStreaksApp", targets: ["SweatStreaksApp"])
     ],
     dependencies: [
@@ -25,11 +28,36 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
+        .target(
+            name: "SweatStreaksProviderSupport",
+            dependencies: [
+                "SweatStreaksCore"
+            ]
+        ),
+        .target(
+            name: "SweatStreaksProviderGitHub",
+            dependencies: [
+                "SweatStreaksCore",
+                "SweatStreaksProviderSupport"
+            ]
+        ),
+        .target(
+            name: "SweatStreaksProviderLeetCode",
+            dependencies: [
+                "SweatStreaksCore",
+                "SweatStreaksProviderSupport"
+            ]
+        ),
         .executableTarget(
             name: "SweatStreaksApp",
             dependencies: [
                 "SweatStreaksCore",
-                "SweatStreaksPersistence"
+                "SweatStreaksPersistence",
+                "SweatStreaksProviderGitHub",
+                "SweatStreaksProviderLeetCode"
+            ],
+            resources: [
+                .process("Resources")
             ]
         ),
         .testTarget(
@@ -49,6 +77,22 @@ let package = Package(
                 "SweatStreaksApp",
                 "SweatStreaksCore",
                 "SweatStreaksPersistence"
+            ]
+        ),
+        .testTarget(
+            name: "SweatStreaksProviderGitHubTests",
+            dependencies: [
+                "SweatStreaksCore",
+                "SweatStreaksProviderGitHub",
+                "SweatStreaksProviderSupport"
+            ]
+        ),
+        .testTarget(
+            name: "SweatStreaksProviderLeetCodeTests",
+            dependencies: [
+                "SweatStreaksCore",
+                "SweatStreaksProviderLeetCode",
+                "SweatStreaksProviderSupport"
             ]
         )
     ]

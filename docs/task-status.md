@@ -63,11 +63,26 @@
   - Added configurable collapsed menu bar streak values for GitHub, LeetCode, and Combined.
   - Switched source markers to shared logo-style icons for GitHub, LeetCode, and Combined, including the collapsed menu bar streak label.
   - Added GitHub contribution-calendar diagnostics in the status-row tooltip.
+  - Tightened heatmap square sizing and made month labels collision-aware so compact ranges do not overlap adjacent month names.
   - Clamped provider persistence to requested local-day ranges to avoid future UTC spillover rows.
   - Added tests for notification dedupe and active-status suppression.
   - Added tests for collapsed menu bar streak formatting and visibility filtering.
+  - Added neutral dark/light app icon resources and runtime appearance-aware icon selection.
 - Notes:
   - UI smoke tests and richer diagnostics remain future work.
 
 ## Phase 6: Optional Rust Domain Core
 - Status: Not Started
+
+## Phase 7: Provider Module Refactor
+- Status: Complete
+- Completed:
+  - Split shared provider HTTP support into `SweatStreaksProviderSupport`.
+  - Moved GitHub provider implementation and tests into `SweatStreaksProviderGitHub`.
+  - Moved LeetCode provider implementation and tests into `SweatStreaksProviderLeetCode`.
+  - Added an app-level `ProviderRegistry` to construct configured providers for the sync service.
+  - Centralized the current provider source list in core and updated sync/anchor logic to consume it.
+  - Extended combined status derivation to accept explicit required sources while preserving GitHub + LeetCode behavior.
+  - Validation run completed: `swift test`, `swift build`, and `swift run SweatStreaksApp` compile/launch sanity check.
+- Notes:
+  - Local tool streaks for Codex, Claude Code, and Cursor remain future work and should be designed around normalized local activity evidence.

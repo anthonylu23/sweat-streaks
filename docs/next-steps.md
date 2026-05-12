@@ -10,11 +10,13 @@
 - Add UI smoke tests for settings window focus/text entry, settings save, refresh, provider-state display, and override toggles.
 - Add a diagnostics view for recent sync runs and provider error history.
 - Add a LeetCode fallback adapter if the public GraphQL profile calendar proves unreliable.
+- Before adding Codex, Claude Code, or Cursor streaks, design a local activity evidence model that can normalize sessions/events into provider day statuses without changing the sync contract.
 
 ## Product Polish
 - Gather real-world feedback on the compact menu bar icon-and-number labels and adjust if they are too wide or unclear.
-- Add true intensity levels to heatmap squares if provider storage starts preserving daily contribution/submission counts.
+- Verify the selected dark/light app icon variants in a packaged `.app` once distribution packaging is introduced.
 - Add snooze controls for risk reminders.
 
 ## Optional Later
+- Add local tool providers for Codex, Claude Code, and Cursor once the evidence model is defined.
 - Revisit the Rust domain core only if Swift domain logic becomes complex enough to justify FFI.

@@ -365,7 +365,10 @@ final class AppModel: ObservableObject {
 
             effectiveGithubDays[day] = effective[.github] ?? .unknown
             effectiveLeetCodeDays[day] = effective[.leetcode] ?? .unknown
-            combinedDays[day] = CombinedStatusResolver.derive(effectiveStatuses: effective)
+            combinedDays[day] = CombinedStatusResolver.derive(
+                effectiveStatuses: effective,
+                requiredSources: ProviderRegistry.combinedRequiredSources
+            )
         }
 
         return (github: effectiveGithubDays, leetcode: effectiveLeetCodeDays, combined: combinedDays)
@@ -495,27 +498,12 @@ final class AppModel: ObservableObject {
     }
 
     private func makeProviderFactories() -> [ActivitySource: DefaultSyncService.ProviderFactory] {
-        var factories: [ActivitySource: DefaultSyncService.ProviderFactory] = [:]
-
-        let githubUsername = githubUsername.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !githubUsername.isEmpty {
-            factories[.github] = { [secretStore] in
-                let token = try secretStore.getSecret(for: Self.githubPATKey) ?? ""
-                guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                    throw ProviderError.auth
-                }
-                return GitHubProvider(username: githubUsername, token: token)
-            }
-        }
-
-        let leetCodeUsername = leetCodeUsername.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !leetCodeUsername.isEmpty {
-            factories[.leetcode] = {
-                LeetCodeProvider(username: leetCodeUsername)
-            }
-        }
-
-        return factories
+        ProviderRegistry.makeProviderFactories(
+            githubUsername: githubUsername,
+            leetCodeUsername: leetCodeUsername,
+            secretStore: secretStore,
+            githubPATKey: Self.githubPATKey
+        )
     }
 
     private func startRefreshLoop() {
@@ -570,7 +558,13 @@ final class AppModel: ObservableObject {
 
             github[day] = githubStatus
             leetcode[day] = leetCodeStatus
-            combined[day] = CombinedStatusResolver.derive(github: githubStatus, leetcode: leetCodeStatus)
+            combined[day] = CombinedStatusResolver.derive(
+                effectiveStatuses: [
+                    .github: githubStatus,
+                    .leetcode: leetCodeStatus
+                ],
+                requiredSources: ProviderRegistry.combinedRequiredSources
+            )
         }
 
         return (github: github, leetcode: leetcode, combined: combined)

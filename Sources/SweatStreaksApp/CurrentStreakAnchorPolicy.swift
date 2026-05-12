@@ -25,18 +25,21 @@ enum CurrentStreakAnchorPolicy {
         todayStatuses: [ActivitySource: DayStatus],
         todayOverrides: [ActivitySource: ManualOverride]
     ) -> Bool {
-        switch source {
-        case .github, .leetcode:
+        if ActivitySource.currentProviderSources.contains(source) {
             if todayOverrides[source] != nil {
                 return true
             }
             return todayStatuses[source] == .active
-        case .combined:
+        }
+
+        if source == .combined {
             if todayOverrides.values.contains(where: { $0.status == .inactive }) {
                 return true
             }
             return todayStatuses[.combined] == .active
         }
+
+        return todayStatuses[source] == .active
     }
 
     private static func previousDay(before day: LocalDay, in timeZone: TimeZone) -> LocalDay? {

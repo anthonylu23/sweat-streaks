@@ -1,7 +1,8 @@
 import Foundation
 import XCTest
-@testable import SweatStreaksApp
 @testable import SweatStreaksCore
+@testable import SweatStreaksProviderGitHub
+import SweatStreaksProviderSupport
 
 final class GitHubProviderTests: XCTestCase {
     func testContributionMapping() async throws {

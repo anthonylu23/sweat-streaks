@@ -10,6 +10,7 @@ The collapsed menu bar item can show GitHub, LeetCode, and Combined current stre
 - Phase 1 complete: app scaffold, core domain types, SQLite persistence, static menu bar UI, and foundational tests.
 - Phase 2 complete: GitHub GraphQL provider, sync engine with retry/cooldown/stale handling, Keychain PAT storage, and app-level sync tests.
 - MVP provider flow complete: GitHub + LeetCode sync, provider-generic orchestration, persisted provider state, effective manual overrides, combined status derivation, automatic refresh, and daily risk notifications.
+- Provider module refactor complete: GitHub and LeetCode providers now live in separate SwiftPM targets behind the shared core provider contract.
 
 ## Requirements
 - macOS 13+
@@ -46,7 +47,8 @@ LeetCode sync uses LeetCode's public, unofficial GraphQL profile calendar. If th
 - Current streaks use an end-of-day grace rule: if today's provider status is not active yet, the displayed current streak is calculated through yesterday until local midnight. Manual inactive overrides reset immediately.
 - Provider activity is clamped to the requested local-day window before persistence so UTC spillover dates do not create future local rows; stale future rows from earlier runs are removed on refresh.
 - Manual overrides are stored separately from provider data and marked in the popover.
-- The menu bar popover shows one-year calendar heatmaps for GitHub contributions, LeetCode activity, and Combined activity.
+- The menu bar popover shows compact one-year calendar heatmaps for GitHub contributions, LeetCode activity, and Combined activity.
+- The runtime app icon uses bundled dark and light neutral variants and refreshes when the macOS appearance changes.
 
 ## Security Model
 - GitHub PATs are stored in macOS Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`.
@@ -86,16 +88,18 @@ swift test
 
 ## Project Structure
 - `Package.swift`: package definition and targets.
-- `Sources/SweatStreaksApp`: menu bar app UI and app state.
-- `Sources/SweatStreaksApp/GitHubProvider.swift`: GitHub GraphQL fetch and response mapping.
-- `Sources/SweatStreaksApp/LeetCodeProvider.swift`: LeetCode public calendar fetch and response mapping.
+- `Sources/SweatStreaksApp`: menu bar app UI, app state, provider registry, sync orchestration, and settings.
+- `Sources/SweatStreaksApp/Resources/AppIcon`: dark and light 1024px app icon PNG variants used by the runtime icon manager.
 - `Sources/SweatStreaksApp/SyncEngine.swift`: sync orchestration and provider state tracking.
 - `Sources/SweatStreaksApp/NotificationEngine.swift`: once-per-day combined-streak risk notification logic.
 - `Sources/SweatStreaksApp/CurrentStreakAnchorPolicy.swift`: app-level end-of-day grace policy for current streak metrics.
 - `Sources/SweatStreaksApp/MenuBarStreakDisplay.swift`: compact status item selection and accessibility labels for configurable visible streaks.
 - `Sources/SweatStreaksCore`: domain types and streak logic.
 - `Sources/SweatStreaksPersistence`: SQLite schema/repository plus Keychain secret store.
-- `Tests`: core, persistence, and app sync/provider tests.
+- `Sources/SweatStreaksProviderSupport`: shared provider HTTP client, HTTPS enforcement, and rate-limit header parsing.
+- `Sources/SweatStreaksProviderGitHub`: GitHub GraphQL fetch and response mapping.
+- `Sources/SweatStreaksProviderLeetCode`: LeetCode public calendar fetch and response mapping.
+- `Tests`: core, persistence, app sync/UI, and provider-module tests.
 - `docs/architecture.md`: architecture and data flow.
 - `docs/task-status.md`: implementation progress by phase.
 - `docs/next-steps.md`: prioritized upcoming work.

@@ -56,7 +56,7 @@ final class DefaultSyncService: SyncService {
     }
 
     private var orderedSources: [ActivitySource] {
-        [.github, .leetcode].filter { providerFactories[$0] != nil }
+        ActivitySource.currentProviderSources.filter { providerFactories[$0] != nil }
     }
 
     private func refresh(source: ActivitySource) async {
@@ -329,7 +329,7 @@ final class DefaultSyncService: SyncService {
     private func deriveCombinedStatus(day: LocalDay, freshSource: ActivitySource, freshStatus: DayStatus) -> DayStatus {
         var sourceStatuses: [ActivitySource: DayStatus] = [:]
 
-        for source in [ActivitySource.github, .leetcode] {
+        for source in ActivitySource.currentProviderSources {
             if source == freshSource {
                 sourceStatuses[source] = freshStatus
             } else {
@@ -338,14 +338,17 @@ final class DefaultSyncService: SyncService {
         }
 
         var overrides: [ActivitySource: OverrideStatus] = [:]
-        for source in [ActivitySource.github, .leetcode] {
+        for source in ActivitySource.currentProviderSources {
             if let manualOverride = try? repository.fetchManualOverride(day: day, source: source) {
                 overrides[source] = manualOverride.status
             }
         }
 
         let effective = StreakEngine.applyOverrides(sourceStatuses: sourceStatuses, overrides: overrides)
-        return CombinedStatusResolver.derive(effectiveStatuses: effective)
+        return CombinedStatusResolver.derive(
+            effectiveStatuses: effective,
+            requiredSources: ActivitySource.combinedRequiredSources
+        )
     }
 
     private func recordState(_ state: ProviderSyncState) throws {

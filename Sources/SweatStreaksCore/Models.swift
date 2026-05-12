@@ -4,6 +4,9 @@ public enum ActivitySource: String, Codable, CaseIterable, Sendable {
     case github
     case leetcode
     case combined
+
+    public static let currentProviderSources: [ActivitySource] = [.github, .leetcode]
+    public static let combinedRequiredSources: [ActivitySource] = currentProviderSources
 }
 
 public enum DayStatus: String, Codable, Sendable {

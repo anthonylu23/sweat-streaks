@@ -1,22 +1,9 @@
 import Foundation
 import SweatStreaksCore
+import SweatStreaksProviderSupport
 
-protocol HTTPClient: Sendable {
-    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse)
-}
-
-struct URLSessionHTTPClient: HTTPClient {
-    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw ProviderError.network
-        }
-        return (data, httpResponse)
-    }
-}
-
-struct GitHubProvider: ActivityProvider {
-    let source: ActivitySource = .github
+public struct GitHubProvider: ActivityProvider {
+    public let source: ActivitySource = .github
 
     private let username: String
     private let token: String
@@ -24,7 +11,7 @@ struct GitHubProvider: ActivityProvider {
     private let endpoint: URL
     private let now: @Sendable () -> Date
 
-    init(
+    public init(
         username: String,
         token: String,
         httpClient: HTTPClient = URLSessionHTTPClient(),
@@ -38,10 +25,8 @@ struct GitHubProvider: ActivityProvider {
         self.now = now
     }
 
-    func fetchActivityDays(range: ClosedRange<Date>) async throws -> ProviderFetchResult {
-        guard endpoint.scheme == "https" else {
-            throw ProviderError.unknown(message: "GitHub endpoint must use HTTPS.")
-        }
+    public func fetchActivityDays(range: ClosedRange<Date>) async throws -> ProviderFetchResult {
+        try ProviderHTTP.requireHTTPS(endpoint: endpoint, providerName: "GitHub")
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -184,23 +169,8 @@ struct GitHubProvider: ActivityProvider {
         )
     }
 
-    static func parseRateLimitDate(response: HTTPURLResponse, fallbackNow: Date) -> Date? {
-        if let retryAfterString = response.value(forHTTPHeaderField: "Retry-After"),
-           let retrySeconds = TimeInterval(retryAfterString) {
-            return fallbackNow.addingTimeInterval(retrySeconds)
-        }
-
-        if let resetString = response.value(forHTTPHeaderField: "X-RateLimit-Reset"),
-           let resetEpoch = TimeInterval(resetString) {
-            return Date(timeIntervalSince1970: resetEpoch)
-        }
-
-        if let remaining = response.value(forHTTPHeaderField: "X-RateLimit-Remaining"),
-           remaining == "0" {
-            return fallbackNow.addingTimeInterval(TimeInterval(SyncDefaults.rateLimitCooldownMinutes * 60))
-        }
-
-        return nil
+    public static func parseRateLimitDate(response: HTTPURLResponse, fallbackNow: Date) -> Date? {
+        ProviderHTTP.parseRateLimitDate(response: response, fallbackNow: fallbackNow)
     }
 
     private static func formatGraphQLDateTime(_ date: Date) -> String {

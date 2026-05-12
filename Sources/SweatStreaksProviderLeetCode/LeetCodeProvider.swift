@@ -1,15 +1,16 @@
 import Foundation
 import SweatStreaksCore
+import SweatStreaksProviderSupport
 
-struct LeetCodeProvider: ActivityProvider {
-    let source: ActivitySource = .leetcode
+public struct LeetCodeProvider: ActivityProvider {
+    public let source: ActivitySource = .leetcode
 
     private let username: String
     private let httpClient: HTTPClient
     private let endpoint: URL
     private let now: @Sendable () -> Date
 
-    init(
+    public init(
         username: String,
         httpClient: HTTPClient = URLSessionHTTPClient(),
         endpoint: URL = URL(string: "https://leetcode.com/graphql")!,
@@ -21,7 +22,7 @@ struct LeetCodeProvider: ActivityProvider {
         self.now = now
     }
 
-    func fetchActivityDays(range: ClosedRange<Date>) async throws -> ProviderFetchResult {
+    public func fetchActivityDays(range: ClosedRange<Date>) async throws -> ProviderFetchResult {
         let years = Self.years(in: range)
         var activeDays: Set<LocalDay> = []
 
@@ -48,9 +49,7 @@ struct LeetCodeProvider: ActivityProvider {
     }
 
     private func fetchCalendar(year: Int) async throws -> Set<LocalDay> {
-        guard endpoint.scheme == "https" else {
-            throw ProviderError.unknown(message: "LeetCode endpoint must use HTTPS.")
-        }
+        try ProviderHTTP.requireHTTPS(endpoint: endpoint, providerName: "LeetCode")
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -82,7 +81,9 @@ struct LeetCodeProvider: ActivityProvider {
         }
 
         if response.statusCode == 429 {
-            throw ProviderError.rateLimited(retryAfter: GitHubProvider.parseRateLimitDate(response: response, fallbackNow: now()))
+            throw ProviderError.rateLimited(
+                retryAfter: ProviderHTTP.parseRateLimitDate(response: response, fallbackNow: now())
+            )
         }
 
         guard (200...299).contains(response.statusCode) else {
@@ -107,7 +108,7 @@ struct LeetCodeProvider: ActivityProvider {
         return try Self.parseSubmissionCalendar(calendar)
     }
 
-    static func parseSubmissionCalendar(_ calendar: String, timeZone: TimeZone = .current) throws -> Set<LocalDay> {
+    public static func parseSubmissionCalendar(_ calendar: String, timeZone: TimeZone = .current) throws -> Set<LocalDay> {
         guard let data = calendar.data(using: .utf8) else {
             throw ProviderError.decoding
         }
