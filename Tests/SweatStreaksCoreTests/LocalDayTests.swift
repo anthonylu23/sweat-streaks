@@ -59,4 +59,34 @@ final class LocalDayTests: XCTestCase {
             .unknown
         )
     }
+
+    func testDefaultCombinedStatusRequiresAllCurrentProviders() {
+        XCTAssertEqual(
+            CombinedStatusResolver.derive(effectiveStatuses: [
+                .github: .active,
+                .leetcode: .active,
+                .codex: .active,
+                .claudeCode: .active
+            ]),
+            .active
+        )
+        XCTAssertEqual(
+            CombinedStatusResolver.derive(effectiveStatuses: [
+                .github: .active,
+                .leetcode: .active,
+                .codex: .unknown,
+                .claudeCode: .active
+            ]),
+            .unknown
+        )
+        XCTAssertEqual(
+            CombinedStatusResolver.derive(effectiveStatuses: [
+                .github: .active,
+                .leetcode: .active,
+                .codex: .inactive,
+                .claudeCode: .active
+            ]),
+            .inactive
+        )
+    }
 }

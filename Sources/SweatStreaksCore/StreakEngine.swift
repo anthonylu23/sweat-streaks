@@ -7,7 +7,7 @@ public enum CombinedStatusResolver {
                 .github: github,
                 .leetcode: leetcode
             ],
-            requiredSources: ActivitySource.combinedRequiredSources
+            requiredSources: [.github, .leetcode]
         )
     }
 

@@ -22,15 +22,17 @@ final class CurrentStreakAnchorPolicyTests: XCTestCase {
 
     func testAppMetricsReturnOneForSnapchatStyleYesterdayOnlyGitHubStreak() {
         let metrics = AppModel.makeMetrics(
-            effectiveDays: (
-                github: [
+            effectiveDays: [
+                .github: [
                     today: .inactive,
                     yesterday: .active,
                     dayBefore: .inactive
                 ],
-                leetcode: [:],
-                combined: [:]
-            ),
+                .leetcode: [:],
+                .codex: [:],
+                .claudeCode: [:],
+                .combined: [:]
+            ],
             today: today,
             todayStatuses: [.github: .inactive],
             todayOverrides: [:]
@@ -42,15 +44,17 @@ final class CurrentStreakAnchorPolicyTests: XCTestCase {
 
     func testAppMetricsReturnOneForUnknownTodayAndActiveYesterday() {
         let metrics = AppModel.makeMetrics(
-            effectiveDays: (
-                github: [
+            effectiveDays: [
+                .github: [
                     today: .unknown,
                     yesterday: .active,
                     dayBefore: .inactive
                 ],
-                leetcode: [:],
-                combined: [:]
-            ),
+                .leetcode: [:],
+                .codex: [:],
+                .claudeCode: [:],
+                .combined: [:]
+            ],
             today: today,
             todayStatuses: [.github: .unknown],
             todayOverrides: [:]
@@ -85,15 +89,17 @@ final class CurrentStreakAnchorPolicyTests: XCTestCase {
 
     func testAppMetricsIncludeTodayWhenTodayIsActive() {
         let metrics = AppModel.makeMetrics(
-            effectiveDays: (
-                github: [
+            effectiveDays: [
+                .github: [
                     today: .active,
                     yesterday: .active,
                     dayBefore: .inactive
                 ],
-                leetcode: [:],
-                combined: [:]
-            ),
+                .leetcode: [:],
+                .codex: [:],
+                .claudeCode: [:],
+                .combined: [:]
+            ],
             today: today,
             todayStatuses: [.github: .active],
             todayOverrides: [:]
@@ -131,15 +137,17 @@ final class CurrentStreakAnchorPolicyTests: XCTestCase {
 
     func testAppMetricsManualInactiveTodayResetsToZero() {
         let metrics = AppModel.makeMetrics(
-            effectiveDays: (
-                github: [
+            effectiveDays: [
+                .github: [
                     today: .inactive,
                     yesterday: .active,
                     dayBefore: .inactive
                 ],
-                leetcode: [:],
-                combined: [:]
-            ),
+                .leetcode: [:],
+                .codex: [:],
+                .claudeCode: [:],
+                .combined: [:]
+            ],
             today: today,
             todayStatuses: [.github: .inactive],
             todayOverrides: [.github: override(source: .github, status: .inactive)]

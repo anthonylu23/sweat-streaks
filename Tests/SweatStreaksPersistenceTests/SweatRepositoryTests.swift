@@ -48,6 +48,26 @@ final class SweatRepositoryTests: XCTestCase {
         XCTAssertEqual(fetched?.status, .active)
     }
 
+    func testAgenticToolSourcesPersistAcrossProviderTables() throws {
+        let manager = try DatabaseManager(inMemory: true)
+        let repository = SweatRepository(dbQueue: manager.dbQueue)
+        let day = LocalDay(year: 2026, month: 5, day: 12)
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+        try repository.upsertActivityDayRecord(
+            ActivityDayRecord(day: day, source: .codex, status: .active, updatedAt: now, provenance: .api)
+        )
+        try repository.setManualStatus(day: day, source: .claudeCode, status: .inactive, note: "No Claude work")
+        try repository.upsertProviderSyncState(
+            ProviderSyncState(source: .codex, lastSuccessAt: now, cooldownUntil: nil, lastError: nil, isStale: false),
+            updatedAt: now
+        )
+
+        XCTAssertEqual(try repository.fetchActivityDayRecord(day: day, source: .codex)?.status, .active)
+        XCTAssertEqual(try repository.fetchManualOverride(day: day, source: .claudeCode)?.status, .inactive)
+        XCTAssertEqual(try repository.fetchProviderSyncState(source: .codex)?.lastSuccessAt, now)
+    }
+
     func testActivityDelete() throws {
         let manager = try DatabaseManager(inMemory: true)
         let repository = SweatRepository(dbQueue: manager.dbQueue)

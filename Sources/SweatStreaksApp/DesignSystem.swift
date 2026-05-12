@@ -29,6 +29,8 @@ enum DS {
     enum Palette {
         static let github = Color(red: 0.22, green: 0.78, blue: 0.39)
         static let leetcode = Color(red: 0.98, green: 0.62, blue: 0.07)
+        static let codex = Color(red: 0.18, green: 0.55, blue: 0.95)
+        static let claudeCode = Color(red: 0.58, green: 0.39, blue: 0.96)
         static let combined = Color(red: 1.0, green: 0.42, blue: 0.21)
 
         static let inactiveSquare = Color(nsColor: .tertiaryLabelColor).opacity(0.18)
@@ -41,6 +43,8 @@ enum DS {
             switch source {
             case .github: return github
             case .leetcode: return leetcode
+            case .codex: return codex
+            case .claudeCode: return claudeCode
             case .combined: return combined
             }
         }
@@ -120,6 +124,20 @@ struct SourceIcon: View {
                 .interpolation(.high)
                 .scaledToFit()
                 .foregroundStyle(DS.Palette.leetcode)
+        case .codex:
+            Image(nsImage: BrandIcon.codex)
+                .resizable()
+                .renderingMode(.template)
+                .interpolation(.high)
+                .scaledToFit()
+                .foregroundStyle(DS.Palette.codex)
+        case .claudeCode:
+            Image(nsImage: BrandIcon.claudeCode)
+                .resizable()
+                .renderingMode(.template)
+                .interpolation(.high)
+                .scaledToFit()
+                .foregroundStyle(DS.Palette.claudeCode)
         case .combined:
             Image(systemName: "flame.fill")
                 .font(.system(size: size, weight: .semibold))
@@ -141,10 +159,6 @@ struct SourceBadge: View {
     }
 
     private var label: String {
-        switch source {
-        case .github: return "GitHub"
-        case .leetcode: return "LeetCode"
-        case .combined: return "Combined"
-        }
+        source.displayName
     }
 }

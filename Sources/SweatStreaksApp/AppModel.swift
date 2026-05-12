@@ -35,8 +35,14 @@ final class AppModel: ObservableObject {
     @Published var refreshIntervalMinutes: Int = 60
     @Published var notificationsEnabled: Bool = false
     @Published var reminderHour: Int = 20
+    @Published var trackGitHubProvider: Bool = true
+    @Published var trackLeetCodeProvider: Bool = true
+    @Published var trackCodexProvider: Bool = false
+    @Published var trackClaudeCodeProvider: Bool = false
     @Published var showGitHubStreakInMenuBar: Bool = true
     @Published var showLeetCodeStreakInMenuBar: Bool = true
+    @Published var showCodexStreakInMenuBar: Bool = true
+    @Published var showClaudeCodeStreakInMenuBar: Bool = true
     @Published var showCombinedStreakInMenuBar: Bool = true
     @Published var githubPATInput: String = ""
     @Published var patStatusMessage: String?
@@ -76,17 +82,28 @@ final class AppModel: ObservableObject {
     }
 
     var isGitHubConnected: Bool {
-        !githubUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && hasSavedGitHubPAT
+        trackGitHubProvider && !githubUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && hasSavedGitHubPAT
     }
 
     var isLeetCodeConnected: Bool {
-        !leetCodeUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        trackLeetCodeProvider && !leetCodeUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var isCodexConnected: Bool {
+        trackCodexProvider && ProviderRegistry.hasLocalData(for: .codex)
+    }
+
+    var isClaudeCodeConnected: Bool {
+        trackClaudeCodeProvider && ProviderRegistry.hasLocalData(for: .claudeCode)
     }
 
     var isOnboardingNeeded: Bool {
         let githubBlank = githubUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let leetCodeBlank = leetCodeUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return githubBlank && leetCodeBlank
+        return (!trackGitHubProvider || githubBlank)
+            && (!trackLeetCodeProvider || leetCodeBlank)
+            && !trackCodexProvider
+            && !trackClaudeCodeProvider
     }
 
     func refreshNow() {
@@ -108,7 +125,11 @@ final class AppModel: ObservableObject {
             return
         }
 
-        let syncService = DefaultSyncService(repository: repository, providerFactories: providerFactories)
+        let syncService = DefaultSyncService(
+            repository: repository,
+            providerFactories: providerFactories,
+            combinedRequiredSources: trackedProviderSources
+        )
         await syncService.refreshNow(trigger: trigger)
 
         do {
@@ -129,7 +150,7 @@ final class AppModel: ObservableObject {
     }
 
     func setTodayOverride(source: ActivitySource, status: OverrideStatus) {
-        guard source == .github || source == .leetcode else { return }
+        guard ActivitySource.currentProviderSources.contains(source) else { return }
 
         let today = LocalDay.from(date: Date(), in: .current)
         do {
@@ -146,7 +167,7 @@ final class AppModel: ObservableObject {
     }
 
     func clearTodayOverride(source: ActivitySource) {
-        guard source == .github || source == .leetcode else { return }
+        guard ActivitySource.currentProviderSources.contains(source) else { return }
 
         let today = LocalDay.from(date: Date(), in: .current)
         do {
@@ -159,13 +180,20 @@ final class AppModel: ObservableObject {
 
     func saveSettings() {
         do {
+            enforceMenuBarVisibilityForTrackedProviders()
             try settingsStore.set(githubUsername, for: .githubUsername)
             try settingsStore.set(leetCodeUsername, for: .leetCodeUsername)
             try settingsStore.set(String(refreshIntervalMinutes), for: .refreshIntervalMinutes)
             try settingsStore.set(notificationsEnabled ? "true" : "false", for: .notificationsEnabled)
             try settingsStore.set(String(reminderHour), for: .reminderHour)
+            try settingsStore.set(trackGitHubProvider ? "true" : "false", for: .trackGitHubProvider)
+            try settingsStore.set(trackLeetCodeProvider ? "true" : "false", for: .trackLeetCodeProvider)
+            try settingsStore.set(trackCodexProvider ? "true" : "false", for: .trackCodexProvider)
+            try settingsStore.set(trackClaudeCodeProvider ? "true" : "false", for: .trackClaudeCodeProvider)
             try settingsStore.set(showGitHubStreakInMenuBar ? "true" : "false", for: .showGitHubStreakInMenuBar)
             try settingsStore.set(showLeetCodeStreakInMenuBar ? "true" : "false", for: .showLeetCodeStreakInMenuBar)
+            try settingsStore.set(showCodexStreakInMenuBar ? "true" : "false", for: .showCodexStreakInMenuBar)
+            try settingsStore.set(showClaudeCodeStreakInMenuBar ? "true" : "false", for: .showClaudeCodeStreakInMenuBar)
             try settingsStore.set(showCombinedStreakInMenuBar ? "true" : "false", for: .showCombinedStreakInMenuBar)
 
             let pat = githubPATInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -178,6 +206,7 @@ final class AppModel: ObservableObject {
             } else {
                 patStatusMessage = "GitHub PAT not set."
             }
+            refreshViewStateFromStorage()
             startRefreshLoop()
         } catch {
             lastSyncWarning = "Failed to save settings: \(error.localizedDescription)"
@@ -220,7 +249,14 @@ final class AppModel: ObservableObject {
 
             showGitHubStreakInMenuBar = try boolSetting(.showGitHubStreakInMenuBar, default: true)
             showLeetCodeStreakInMenuBar = try boolSetting(.showLeetCodeStreakInMenuBar, default: true)
+            trackGitHubProvider = try boolSetting(.trackGitHubProvider, default: true)
+            trackLeetCodeProvider = try boolSetting(.trackLeetCodeProvider, default: true)
+            trackCodexProvider = try boolSetting(.trackCodexProvider, default: ProviderRegistry.hasLocalData(for: .codex))
+            trackClaudeCodeProvider = try boolSetting(.trackClaudeCodeProvider, default: ProviderRegistry.hasLocalData(for: .claudeCode))
+            showCodexStreakInMenuBar = try boolSetting(.showCodexStreakInMenuBar, default: true)
+            showClaudeCodeStreakInMenuBar = try boolSetting(.showClaudeCodeStreakInMenuBar, default: true)
             showCombinedStreakInMenuBar = try boolSetting(.showCombinedStreakInMenuBar, default: true)
+            enforceMenuBarVisibilityForTrackedProviders()
 
             githubPATInput = ""
             patStatusMessage = hasSavedGitHubPAT ? "GitHub PAT saved in Keychain." : "GitHub PAT not set."
@@ -257,27 +293,24 @@ final class AppModel: ObservableObject {
         do {
             try repository.deleteActivityDays(after: today)
 
-            let githubDays = try repository.fetchActivityDays(source: .github, from: from, to: today)
-            let leetCodeDays = try repository.fetchActivityDays(source: .leetcode, from: from, to: today)
+            var providerDays: [ActivitySource: [LocalDay: DayStatus]] = [:]
+            for source in ActivitySource.currentProviderSources {
+                providerDays[source] = try repository.fetchActivityDays(source: source, from: from, to: today)
+            }
             let overrides = try repository.fetchManualOverrides(from: from, to: today)
             todayOverrides = overrides[today] ?? [:]
 
-            if githubDays.isEmpty && leetCodeDays.isEmpty {
+            if providerDays.values.allSatisfy(\.isEmpty) {
                 githubContributionDiagnostic = nil
-                let seed = AppModel.seedDayMap(in: .current)
+                providerDays = AppModel.seedDayMap(in: .current)
                 let effectiveDays = effectiveDayMaps(
-                    githubDays: seed.github,
-                    leetCodeDays: seed.leetcode,
+                    providerDays: providerDays,
                     overrides: overrides,
                     from: from,
                     to: today
                 )
 
-                todayStatuses = [
-                    .github: effectiveDays.github[today] ?? .unknown,
-                    .leetcode: effectiveDays.leetcode[today] ?? .unknown,
-                    .combined: effectiveDays.combined[today] ?? .unknown
-                ]
+                todayStatuses = todayStatuses(from: effectiveDays, today: today)
 
                 metrics = Self.makeMetrics(
                     effectiveDays: effectiveDays,
@@ -287,9 +320,7 @@ final class AppModel: ObservableObject {
                 )
 
                 updateSquareTimelines(
-                    githubDays: effectiveDays.github,
-                    leetCodeDays: effectiveDays.leetcode,
-                    combinedDays: effectiveDays.combined,
+                    effectiveDays: effectiveDays,
                     overrides: overrides,
                     from: from,
                     to: today
@@ -303,19 +334,14 @@ final class AppModel: ObservableObject {
             }
 
             let effectiveDays = effectiveDayMaps(
-                githubDays: githubDays,
-                leetCodeDays: leetCodeDays,
+                providerDays: providerDays,
                 overrides: overrides,
                 from: from,
                 to: today
             )
 
-            todayStatuses = [
-                .github: effectiveDays.github[today] ?? .unknown,
-                .leetcode: effectiveDays.leetcode[today] ?? .unknown,
-                .combined: effectiveDays.combined[today] ?? .unknown
-            ]
-            githubContributionDiagnostic = Self.githubContributionDiagnostic(from: githubDays)
+            todayStatuses = todayStatuses(from: effectiveDays, today: today)
+            githubContributionDiagnostic = Self.githubContributionDiagnostic(from: providerDays[.github] ?? [:])
 
             metrics = Self.makeMetrics(
                 effectiveDays: effectiveDays,
@@ -325,9 +351,7 @@ final class AppModel: ObservableObject {
             )
 
             updateSquareTimelines(
-                githubDays: effectiveDays.github,
-                leetCodeDays: effectiveDays.leetcode,
-                combinedDays: effectiveDays.combined,
+                effectiveDays: effectiveDays,
                 overrides: overrides,
                 from: from,
                 to: today
@@ -341,84 +365,73 @@ final class AppModel: ObservableObject {
     }
 
     private func effectiveDayMaps(
-        githubDays: [LocalDay: DayStatus],
-        leetCodeDays: [LocalDay: DayStatus],
+        providerDays: [ActivitySource: [LocalDay: DayStatus]],
         overrides: [LocalDay: [ActivitySource: ManualOverride]],
         from: LocalDay,
         to: LocalDay
-    ) -> (
-        github: [LocalDay: DayStatus],
-        leetcode: [LocalDay: DayStatus],
-        combined: [LocalDay: DayStatus]
-    ) {
-        var effectiveGithubDays: [LocalDay: DayStatus] = [:]
-        var effectiveLeetCodeDays: [LocalDay: DayStatus] = [:]
+    ) -> [ActivitySource: [LocalDay: DayStatus]] {
+        var effectiveProviderDays = Dictionary(
+            uniqueKeysWithValues: ActivitySource.currentProviderSources.map { ($0, [LocalDay: DayStatus]()) }
+        )
         var combinedDays: [LocalDay: DayStatus] = [:]
 
         for day in days(from: from, to: to) {
-            let sourceStatuses: [ActivitySource: DayStatus] = [
-                .github: githubDays[day] ?? .unknown,
-                .leetcode: leetCodeDays[day] ?? .unknown
-            ]
+            let sourceStatuses = Dictionary(
+                uniqueKeysWithValues: ActivitySource.currentProviderSources.map { source in
+                    (source, providerDays[source]?[day] ?? .unknown)
+                }
+            )
             let overrideStatuses = overrides[day]?.mapValues(\.status) ?? [:]
             let effective = StreakEngine.applyOverrides(sourceStatuses: sourceStatuses, overrides: overrideStatuses)
 
-            effectiveGithubDays[day] = effective[.github] ?? .unknown
-            effectiveLeetCodeDays[day] = effective[.leetcode] ?? .unknown
+            for source in ActivitySource.currentProviderSources {
+                effectiveProviderDays[source]?[day] = effective[source] ?? .unknown
+            }
             combinedDays[day] = CombinedStatusResolver.derive(
                 effectiveStatuses: effective,
-                requiredSources: ProviderRegistry.combinedRequiredSources
+                requiredSources: trackedProviderSources
             )
         }
 
-        return (github: effectiveGithubDays, leetcode: effectiveLeetCodeDays, combined: combinedDays)
+        effectiveProviderDays[.combined] = combinedDays
+        return effectiveProviderDays
     }
 
     nonisolated static func makeMetrics(
-        effectiveDays: (
-            github: [LocalDay: DayStatus],
-            leetcode: [LocalDay: DayStatus],
-            combined: [LocalDay: DayStatus]
-        ),
+        effectiveDays: [ActivitySource: [LocalDay: DayStatus]],
         today: LocalDay,
         todayStatuses: [ActivitySource: DayStatus],
         todayOverrides: [ActivitySource: ManualOverride]
     ) -> [ActivitySource: StreakMetrics] {
-        [
-            .github: StreakEngine.computeMetrics(
-                source: .github,
-                days: effectiveDays.github,
-                asOf: today,
-                currentStreakAsOf: CurrentStreakAnchorPolicy.anchorDay(
-                    for: .github,
-                    today: today,
-                    todayStatuses: todayStatuses,
-                    todayOverrides: todayOverrides
+        Dictionary(
+            uniqueKeysWithValues: (ActivitySource.currentProviderSources + [.combined]).map { source in
+                (
+                    source,
+                    StreakEngine.computeMetrics(
+                        source: source,
+                        days: effectiveDays[source] ?? [:],
+                        asOf: today,
+                        currentStreakAsOf: CurrentStreakAnchorPolicy.anchorDay(
+                            for: source,
+                            today: today,
+                            todayStatuses: todayStatuses,
+                            todayOverrides: todayOverrides
+                        )
+                    )
                 )
-            ),
-            .leetcode: StreakEngine.computeMetrics(
-                source: .leetcode,
-                days: effectiveDays.leetcode,
-                asOf: today,
-                currentStreakAsOf: CurrentStreakAnchorPolicy.anchorDay(
-                    for: .leetcode,
-                    today: today,
-                    todayStatuses: todayStatuses,
-                    todayOverrides: todayOverrides
-                )
-            ),
-            .combined: StreakEngine.computeMetrics(
-                source: .combined,
-                days: effectiveDays.combined,
-                asOf: today,
-                currentStreakAsOf: CurrentStreakAnchorPolicy.anchorDay(
-                    for: .combined,
-                    today: today,
-                    todayStatuses: todayStatuses,
-                    todayOverrides: todayOverrides
-                )
-            )
-        ]
+            }
+        )
+    }
+
+    private func todayStatuses(
+        from effectiveDays: [ActivitySource: [LocalDay: DayStatus]],
+        today: LocalDay
+    ) -> [ActivitySource: DayStatus] {
+        Dictionary(
+            uniqueKeysWithValues: (ActivitySource.currentProviderSources + [.combined]).map { source in
+                (source, effectiveDays[source]?[today] ?? .unknown)
+            }
+        )
     }
 
     nonisolated static func githubContributionDiagnostic(from githubDays: [LocalDay: DayStatus]) -> String? {
@@ -431,18 +444,17 @@ final class AppModel: ObservableObject {
     }
 
     private func updateSquareTimelines(
-        githubDays: [LocalDay: DayStatus],
-        leetCodeDays: [LocalDay: DayStatus],
-        combinedDays: [LocalDay: DayStatus],
+        effectiveDays: [ActivitySource: [LocalDay: DayStatus]],
         overrides: [LocalDay: [ActivitySource: ManualOverride]],
         from: LocalDay,
         to: LocalDay
     ) {
-        contributionSquares = [
-            .github: makeSquares(source: .github, days: githubDays, overrides: overrides, from: from, to: to),
-            .leetcode: makeSquares(source: .leetcode, days: leetCodeDays, overrides: overrides, from: from, to: to)
-        ]
-        activitySquares = makeSquares(source: .combined, days: combinedDays, overrides: overrides, from: from, to: to)
+        contributionSquares = Dictionary(
+            uniqueKeysWithValues: ActivitySource.currentProviderSources.map { source in
+                (source, makeSquares(source: source, days: effectiveDays[source] ?? [:], overrides: overrides, from: from, to: to))
+            }
+        )
+        activitySquares = makeSquares(source: .combined, days: effectiveDays[.combined] ?? [:], overrides: overrides, from: from, to: to)
     }
 
     private func makeSquares(
@@ -484,8 +496,21 @@ final class AppModel: ObservableObject {
     private var hasAnyProviderConfiguration: Bool {
         let githubConfigured = !githubUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && hasSavedGitHubPAT
+            && trackGitHubProvider
         let leetCodeConfigured = !leetCodeUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return githubConfigured || leetCodeConfigured
+            && trackLeetCodeProvider
+        return githubConfigured || leetCodeConfigured || trackCodexProvider || trackClaudeCodeProvider
+    }
+
+    var trackedProviderSources: [ActivitySource] {
+        [
+            (ActivitySource.github, trackGitHubProvider),
+            (.leetcode, trackLeetCodeProvider),
+            (.codex, trackCodexProvider),
+            (.claudeCode, trackClaudeCodeProvider)
+        ].compactMap { source, isTracked in
+            isTracked ? source : nil
+        }
     }
 
     private var hasSavedGitHubPAT: Bool {
@@ -501,9 +526,28 @@ final class AppModel: ObservableObject {
         ProviderRegistry.makeProviderFactories(
             githubUsername: githubUsername,
             leetCodeUsername: leetCodeUsername,
+            trackGitHubProvider: trackGitHubProvider,
+            trackLeetCodeProvider: trackLeetCodeProvider,
+            trackCodexProvider: trackCodexProvider,
+            trackClaudeCodeProvider: trackClaudeCodeProvider,
             secretStore: secretStore,
             githubPATKey: Self.githubPATKey
         )
+    }
+
+    func enforceMenuBarVisibilityForTrackedProviders() {
+        if !trackGitHubProvider {
+            showGitHubStreakInMenuBar = false
+        }
+        if !trackLeetCodeProvider {
+            showLeetCodeStreakInMenuBar = false
+        }
+        if !trackCodexProvider {
+            showCodexStreakInMenuBar = false
+        }
+        if !trackClaudeCodeProvider {
+            showClaudeCodeStreakInMenuBar = false
+        }
     }
 
     private func startRefreshLoop() {
@@ -537,14 +581,10 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private static func seedDayMap(in timeZone: TimeZone) -> (
-        github: [LocalDay: DayStatus],
-        leetcode: [LocalDay: DayStatus],
-        combined: [LocalDay: DayStatus]
-    ) {
-        var github: [LocalDay: DayStatus] = [:]
-        var leetcode: [LocalDay: DayStatus] = [:]
-        var combined: [LocalDay: DayStatus] = [:]
+    private static func seedDayMap(in timeZone: TimeZone) -> [ActivitySource: [LocalDay: DayStatus]] {
+        var providerDays = Dictionary(
+            uniqueKeysWithValues: ActivitySource.currentProviderSources.map { ($0, [LocalDay: DayStatus]()) }
+        )
 
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
@@ -553,20 +593,26 @@ final class AppModel: ObservableObject {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
             let day = LocalDay.from(date: date, in: timeZone)
 
-            let githubStatus: DayStatus = offset % 5 == 0 ? .inactive : .active
-            let leetCodeStatus: DayStatus = offset % 7 == 0 ? .unknown : .active
-
-            github[day] = githubStatus
-            leetcode[day] = leetCodeStatus
-            combined[day] = CombinedStatusResolver.derive(
-                effectiveStatuses: [
-                    .github: githubStatus,
-                    .leetcode: leetCodeStatus
-                ],
-                requiredSources: ProviderRegistry.combinedRequiredSources
-            )
+            for source in ActivitySource.currentProviderSources {
+                providerDays[source]?[day] = seedStatus(source: source, offset: offset)
+            }
         }
 
-        return (github: github, leetcode: leetcode, combined: combined)
+        return providerDays
+    }
+
+    private static func seedStatus(source: ActivitySource, offset: Int) -> DayStatus {
+        switch source {
+        case .github:
+            return offset % 5 == 0 ? .inactive : .active
+        case .leetcode:
+            return offset % 7 == 0 ? .unknown : .active
+        case .codex:
+            return offset % 6 == 0 ? .inactive : .active
+        case .claudeCode:
+            return offset % 8 == 0 ? .unknown : .active
+        case .combined:
+            return .unknown
+        }
     }
 }

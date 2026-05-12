@@ -176,7 +176,7 @@ public final class SweatRepository {
     }
 
     public func setManualStatus(day: LocalDay, source: ActivitySource, status: OverrideStatus, note: String?) throws {
-        guard source == .github || source == .leetcode else {
+        guard ActivitySource.currentProviderSources.contains(source) else {
             throw RepositoryError.invalidOverrideSource
         }
 
@@ -478,8 +478,14 @@ public enum SettingsKey: String {
     case notificationsEnabled
     case reminderHour
     case lastRiskNotificationDay
+    case trackGitHubProvider
+    case trackLeetCodeProvider
     case showGitHubStreakInMenuBar
     case showLeetCodeStreakInMenuBar
+    case trackCodexProvider
+    case trackClaudeCodeProvider
+    case showCodexStreakInMenuBar
+    case showClaudeCodeStreakInMenuBar
     case showCombinedStreakInMenuBar
 }
 

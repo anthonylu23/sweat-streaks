@@ -3,10 +3,22 @@ import Foundation
 public enum ActivitySource: String, Codable, CaseIterable, Sendable {
     case github
     case leetcode
+    case codex
+    case claudeCode = "claude_code"
     case combined
 
-    public static let currentProviderSources: [ActivitySource] = [.github, .leetcode]
+    public static let currentProviderSources: [ActivitySource] = [.github, .leetcode, .codex, .claudeCode]
     public static let combinedRequiredSources: [ActivitySource] = currentProviderSources
+
+    public var displayName: String {
+        switch self {
+        case .github: return "GitHub"
+        case .leetcode: return "LeetCode"
+        case .codex: return "Codex"
+        case .claudeCode: return "Claude Code"
+        case .combined: return "Combined"
+        }
+    }
 }
 
 public enum DayStatus: String, Codable, Sendable {

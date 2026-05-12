@@ -13,13 +13,21 @@ enum MenuBarStreakDisplay {
     static func items(
         metrics: [ActivitySource: StreakMetrics],
         statuses: [ActivitySource: DayStatus],
+        trackGitHub: Bool = true,
+        trackLeetCode: Bool = true,
+        trackCodex: Bool = true,
+        trackClaudeCode: Bool = true,
         showGitHub: Bool,
         showLeetCode: Bool,
+        showCodex: Bool,
+        showClaudeCode: Bool,
         showCombined: Bool
     ) -> [MenuBarStreakItem] {
         [
-            (ActivitySource.github, showGitHub),
-            (.leetcode, showLeetCode),
+            (ActivitySource.github, trackGitHub && showGitHub),
+            (.leetcode, trackLeetCode && showLeetCode),
+            (.codex, trackCodex && showCodex),
+            (.claudeCode, trackClaudeCode && showClaudeCode),
             (.combined, showCombined)
         ].compactMap { source, isVisible in
             guard isVisible else { return nil }
@@ -43,10 +51,6 @@ enum MenuBarStreakDisplay {
     }
 
     private static func name(for source: ActivitySource) -> String {
-        switch source {
-        case .github: return "GitHub"
-        case .leetcode: return "LeetCode"
-        case .combined: return "Combined"
-        }
+        source.displayName
     }
 }

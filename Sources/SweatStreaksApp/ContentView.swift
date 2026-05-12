@@ -18,7 +18,12 @@ struct ContentView: View {
             footerBar
         }
         .padding(DS.Spacing.m)
-        .frame(width: 460)
+        .frame(width: 620)
+        .onChange(of: model.trackedProviderSources) { trackedSources in
+            if selectedSource != .combined && !trackedSources.contains(selectedSource) {
+                selectedSource = .combined
+            }
+        }
     }
 
     // MARK: - Hero
@@ -57,9 +62,9 @@ struct ContentView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: DS.Spacing.s) {
-                todayRow(source: .github)
-                todayRow(source: .leetcode)
-                todayRow(source: .combined)
+                ForEach(model.trackedProviderSources + [.combined], id: \.self) { source in
+                    todayRow(source: source)
+                }
             }
         }
         .appCard()
@@ -175,11 +180,7 @@ struct ContentView: View {
     }
 
     private func sourceShortLabel(_ source: ActivitySource) -> String {
-        switch source {
-        case .github: return "GitHub"
-        case .leetcode: return "LeetCode"
-        case .combined: return "Combined"
-        }
+        source.displayName
     }
 
     // MARK: - Source picker
@@ -187,13 +188,13 @@ struct ContentView: View {
     private var sourcePicker: some View {
         HStack {
             Picker("", selection: $selectedSource) {
-                ForEach([ActivitySource.combined, .github, .leetcode], id: \.self) { source in
+                ForEach([ActivitySource.combined] + model.trackedProviderSources, id: \.self) { source in
                     Text(sourceShortLabel(source)).tag(source)
                 }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .fixedSize()
+            .frame(maxWidth: .infinity)
             Spacer()
         }
         .padding(.horizontal, DS.Spacing.xs)
@@ -215,7 +216,7 @@ struct ContentView: View {
         switch source {
         case .combined:
             return model.activitySquares
-        case .github, .leetcode:
+        case .github, .leetcode, .codex, .claudeCode:
             return model.contributionSquares[source] ?? []
         }
     }
@@ -236,7 +237,7 @@ struct ContentView: View {
             VStack(spacing: DS.Spacing.xs) {
                 Text("Start your streak")
                     .font(DS.Typography.title)
-                Text("Connect a GitHub or LeetCode account to begin tracking daily activity.")
+                Text("Connect an account or enable local agentic tool tracking to begin tracking daily activity.")
                     .font(DS.Typography.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -306,11 +307,10 @@ struct ContentView: View {
 
             Menu {
                 Section("Override today") {
-                    Menu("GitHub") {
-                        overrideMenuItems(for: .github)
-                    }
-                    Menu("LeetCode") {
-                        overrideMenuItems(for: .leetcode)
+                    ForEach(model.trackedProviderSources, id: \.self) { source in
+                        Menu(sourceShortLabel(source)) {
+                            overrideMenuItems(for: source)
+                        }
                     }
                 }
                 Divider()
@@ -387,12 +387,12 @@ private struct ContributionHeatmapCard: View {
     let squares: [ActivitySquare]
     let metrics: StreakMetrics?
 
-    private let squareSize: CGFloat = 12
-    private let gap: CGFloat = 2.5
-    private let weekdayLabelWidth: CGFloat = 22
+    private let squareSize: CGFloat = 9
+    private let gap: CGFloat = 2
+    private let weekdayLabelWidth: CGFloat = 28
     private let monthLabelHeight: CGFloat = 13
-    private let minimumMonthLabelSpacing: CGFloat = 28
-    private let visibleWeeks: Int = 12
+    private let minimumMonthLabelSpacing: CGFloat = 34
+    private let visibleWeeks: Int = 53
 
     private var weekStride: CGFloat { squareSize + gap }
     private var graphWidth: CGFloat { CGFloat(max(weeks.count, 1)) * weekStride - gap }
@@ -407,8 +407,7 @@ private struct ContributionHeatmapCard: View {
         VStack(alignment: .leading, spacing: DS.Spacing.m) {
             header
 
-            HStack(alignment: .top, spacing: DS.Spacing.s) {
-                Spacer()
+            HStack(alignment: .top, spacing: 6) {
                 weekdayLabels
                     .padding(.top, monthLabelHeight)
 
@@ -416,8 +415,8 @@ private struct ContributionHeatmapCard: View {
                     monthHeader
                     heatmapGrid
                 }
-                Spacer()
             }
+            .frame(maxWidth: .infinity, alignment: .center)
         }
         .appCard()
         .accessibilityElement(children: .contain)
@@ -491,6 +490,8 @@ private struct ContributionHeatmapCard: View {
                 Text(weekdayTitle(index))
                     .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                     .frame(width: weekdayLabelWidth, height: squareSize, alignment: .trailing)
             }
         }
@@ -539,11 +540,7 @@ private struct ContributionHeatmapCard: View {
     }
 
     private func sourceTitle(_ source: ActivitySource) -> String {
-        switch source {
-        case .github: return "GitHub"
-        case .leetcode: return "LeetCode"
-        case .combined: return "Combined"
-        }
+        source.displayName
     }
 
     private func weekdayTitle(_ index: Int) -> String {
@@ -680,8 +677,8 @@ enum SettingsWindowPresenter {
                 let settingsWindow = NSWindow(contentViewController: hostingController)
                 settingsWindow.title = "Sweat Streaks Settings"
                 settingsWindow.styleMask = [.titled, .closable, .miniaturizable]
-                settingsWindow.setContentSize(NSSize(width: 460, height: 500))
-                settingsWindow.minSize = NSSize(width: 440, height: 460)
+                settingsWindow.setContentSize(NSSize(width: 500, height: 620))
+                settingsWindow.minSize = NSSize(width: 480, height: 540)
                 settingsWindow.isReleasedWhenClosed = false
                 settingsWindow.collectionBehavior.insert(.moveToActiveSpace)
                 settingsWindow.center()
@@ -725,6 +722,8 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             Form {
                 Section {
+                    Toggle("Track GitHub activity", isOn: $model.trackGitHubProvider)
+
                     TextField(
                         "Username",
                         text: $model.githubUsername,
@@ -760,6 +759,8 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle("Track LeetCode activity", isOn: $model.trackLeetCodeProvider)
+
                     TextField(
                         "Username",
                         text: $model.leetCodeUsername,
@@ -768,6 +769,18 @@ struct SettingsView: View {
                     .focused($focusedField, equals: .leetCodeUsername)
                 } header: {
                     accountHeader(source: .leetcode, connected: model.isLeetCodeConnected)
+                }
+
+                Section {
+                    Toggle("Track Codex local activity", isOn: $model.trackCodexProvider)
+                    Toggle("Track Claude Code local activity", isOn: $model.trackClaudeCodeProvider)
+                } header: {
+                    HStack(spacing: DS.Spacing.m) {
+                        accountHeader(source: .codex, connected: model.isCodexConnected)
+                        accountHeader(source: .claudeCode, connected: model.isClaudeCodeConnected)
+                    }
+                } footer: {
+                    Text("Local tool tracking reads session/history timestamps only. Auth tokens and prompt contents are not stored or displayed.")
                 }
 
                 Section("Sync") {
@@ -785,12 +798,30 @@ struct SettingsView: View {
 
                 Section("Menu Bar") {
                     Toggle("Show GitHub streak", isOn: $model.showGitHubStreakInMenuBar)
+                        .disabled(!model.trackGitHubProvider)
                     Toggle("Show LeetCode streak", isOn: $model.showLeetCodeStreakInMenuBar)
+                        .disabled(!model.trackLeetCodeProvider)
+                    Toggle("Show Codex streak", isOn: $model.showCodexStreakInMenuBar)
+                        .disabled(!model.trackCodexProvider)
+                    Toggle("Show Claude Code streak", isOn: $model.showClaudeCodeStreakInMenuBar)
+                        .disabled(!model.trackClaudeCodeProvider)
                     Toggle("Show Combined streak", isOn: $model.showCombinedStreakInMenuBar)
                 }
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
+            .onChange(of: model.trackGitHubProvider) { _ in
+                model.enforceMenuBarVisibilityForTrackedProviders()
+            }
+            .onChange(of: model.trackLeetCodeProvider) { _ in
+                model.enforceMenuBarVisibilityForTrackedProviders()
+            }
+            .onChange(of: model.trackCodexProvider) { _ in
+                model.enforceMenuBarVisibilityForTrackedProviders()
+            }
+            .onChange(of: model.trackClaudeCodeProvider) { _ in
+                model.enforceMenuBarVisibilityForTrackedProviders()
+            }
 
             Divider()
 
@@ -808,7 +839,7 @@ struct SettingsView: View {
             }
             .padding(DS.Spacing.m)
         }
-        .frame(minWidth: 440, idealWidth: 460, minHeight: 460, idealHeight: 500)
+        .frame(minWidth: 480, idealWidth: 500, minHeight: 540, idealHeight: 620)
         .onAppear {
             Task { @MainActor in
                 await Task.yield()
@@ -824,7 +855,7 @@ struct SettingsView: View {
             HStack(spacing: 4) {
                 Image(systemName: connected ? "checkmark.circle.fill" : "circle.dashed")
                     .font(.system(size: 10))
-                    .foregroundStyle(connected ? DS.Palette.github : Color.secondary)
+                    .foregroundStyle(connected ? DS.Palette.active(for: source) : Color.secondary)
                 Text(connected ? "Connected" : "Not connected")
                     .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)

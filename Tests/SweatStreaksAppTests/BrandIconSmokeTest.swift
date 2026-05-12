@@ -17,6 +17,20 @@ final class BrandIconSmokeTest: XCTestCase {
         XCTAssertGreaterThan(nonTransparentPixelCount(of: image), 50, "LeetCode mark should produce a visible silhouette")
     }
 
+    func testCodexIconRendersNonEmpty() {
+        let image = BrandIcon.codex
+        XCTAssertTrue(image.isTemplate)
+        XCTAssertGreaterThan(image.size.width, 0)
+        XCTAssertGreaterThan(nonTransparentPixelCount(of: image), 20, "Codex mark should produce a visible silhouette")
+    }
+
+    func testClaudeCodeIconRendersNonEmpty() {
+        let image = BrandIcon.claudeCode
+        XCTAssertTrue(image.isTemplate)
+        XCTAssertGreaterThan(image.size.width, 0)
+        XCTAssertGreaterThan(nonTransparentPixelCount(of: image), 20, "Claude Code mark should produce a visible silhouette")
+    }
+
     private func nonTransparentPixelCount(of image: NSImage) -> Int {
         guard let tiff = image.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff) else { return 0 }

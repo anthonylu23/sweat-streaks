@@ -8,6 +8,7 @@ final class DefaultSyncService: SyncService {
 
     private let repository: SweatRepository
     private let providerFactories: [ActivitySource: ProviderFactory]
+    private let combinedRequiredSources: [ActivitySource]
     private let clock: SyncClock
     private let sleepFunction: (UInt64) async -> Void
     private let jitterFunction: (Int) -> Int
@@ -18,12 +19,14 @@ final class DefaultSyncService: SyncService {
         repository: SweatRepository,
         clock: SyncClock = SystemClock(),
         providerFactories: [ActivitySource: ProviderFactory],
+        combinedRequiredSources: [ActivitySource] = ActivitySource.combinedRequiredSources,
         sleepFunction: @escaping (UInt64) async -> Void = { nanoseconds in try? await Task.sleep(nanoseconds: nanoseconds) },
         jitterFunction: @escaping (Int) -> Int = { _ in Int.random(in: 0...1) }
     ) {
         self.repository = repository
         self.clock = clock
         self.providerFactories = providerFactories
+        self.combinedRequiredSources = combinedRequiredSources
         self.sleepFunction = sleepFunction
         self.jitterFunction = jitterFunction
         self.syncStates = (try? repository.fetchProviderSyncStates()) ?? [:]
@@ -40,6 +43,7 @@ final class DefaultSyncService: SyncService {
             repository: repository,
             clock: clock,
             providerFactories: [.github: providerFactory],
+            combinedRequiredSources: [.github],
             sleepFunction: sleepFunction,
             jitterFunction: jitterFunction
         )
@@ -347,7 +351,7 @@ final class DefaultSyncService: SyncService {
         let effective = StreakEngine.applyOverrides(sourceStatuses: sourceStatuses, overrides: overrides)
         return CombinedStatusResolver.derive(
             effectiveStatuses: effective,
-            requiredSources: ActivitySource.combinedRequiredSources
+            requiredSources: combinedRequiredSources
         )
     }
 

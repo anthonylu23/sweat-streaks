@@ -9,6 +9,24 @@ enum BrandIcon {
     // to them in the menu bar and elsewhere in the UI.
     static let github: NSImage = makeImage(svgPath: githubPath, viewBox: 24, inset: 0.8, style: .fill)
     static let leetcode: NSImage = makeImage(svgPath: leetcodePath, viewBox: 24, inset: 0.8, style: .fill)
+    static let codex: NSImage = makeTemplateImage(
+        resourcePaths: [
+            "/Applications/Codex.app/Contents/Resources/codexTemplate@2x.png",
+            "/Applications/Codex.app/Contents/Resources/codexTemplate.png"
+        ],
+        fallback: makeImage(svgPath: codexFallbackPath, viewBox: 24, inset: 1.6, style: .stroke(lineWidth: 2.1))
+    )
+    static let claudeCode: NSImage = makeTemplateImage(
+        resourcePaths: [
+            "/Applications/Claude.app/Contents/Resources/TrayIconTemplate@3x.png",
+            "/Applications/Claude.app/Contents/Resources/TrayIconTemplate@2x.png",
+            "/Applications/Claude.app/Contents/Resources/TrayIconTemplate.png",
+            "/Applications/Claude.app/Contents/Resources/TrayIconTemplate-Dark@3x.png",
+            "/Applications/Claude.app/Contents/Resources/TrayIconTemplate-Dark@2x.png",
+            "/Applications/Claude.app/Contents/Resources/TrayIconTemplate-Dark.png"
+        ],
+        fallback: makeImage(svgPath: claudeFallbackPath, viewBox: 24, inset: 1.4, style: .fill)
+    )
 
     enum DrawStyle {
         case fill
@@ -18,6 +36,71 @@ enum BrandIcon {
     private static let githubPath = "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
 
     private static let leetcodePath = "M13.483 0a1.374 1.374 0 0 0-.961.438L7.116 6.226l-3.854 4.126a5.266 5.266 0 0 0-1.209 2.104 5.35 5.35 0 0 0-.125.513 5.527 5.527 0 0 0 .062 2.362 5.83 5.83 0 0 0 .349 1.017 5.938 5.938 0 0 0 1.271 1.818l4.277 4.193.039.038c2.248 2.165 5.852 2.133 8.063-.074l2.396-2.392c.54-.54.54-1.414.003-1.955a1.378 1.378 0 0 0-1.951-.003l-2.396 2.392a3.021 3.021 0 0 1-4.205.038l-.02-.019-4.276-4.193c-.652-.64-.972-1.469-.948-2.263a2.68 2.68 0 0 1 .066-.523 2.545 2.545 0 0 1 .619-1.164L9.13 8.114c1.058-1.134 3.204-1.27 4.43-.278l3.501 2.831c.593.48 1.461.387 1.94-.207a1.384 1.384 0 0 0-.207-1.943l-3.5-2.831c-.8-.647-1.766-1.045-2.774-1.202l2.015-2.158A1.384 1.384 0 0 0 13.483 0zm-2.866 12.815a1.38 1.38 0 0 0-1.38 1.382 1.38 1.38 0 0 0 1.38 1.382H20.79a1.38 1.38 0 0 0 1.38-1.382 1.38 1.38 0 0 0-1.38-1.382z"
+
+    private static let codexFallbackPath = "M4 5.5h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zm3 4l3 2.5-3 2.5m5 .5h5"
+
+    private static let claudeFallbackPath = "M11.96 0 9.45 7.25 2.28 2.44 7.09 9.62 0 12.04l7.09 2.42-4.81 7.18 7.17-4.81L11.96 24l2.51-7.17 7.17 4.81-4.81-7.18L24 12.04l-7.17-2.42 4.81-7.18-7.17 4.81z"
+
+    private static func makeTemplateImage(resourcePaths: [String], fallback: NSImage) -> NSImage {
+        for path in resourcePaths {
+            guard let image = NSImage(contentsOfFile: path) else { continue }
+            let trimmed = trimTransparentPadding(from: image) ?? image
+            trimmed.isTemplate = true
+            return trimmed
+        }
+        return fallback
+    }
+
+    private static func trimTransparentPadding(from image: NSImage) -> NSImage? {
+        guard let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff) else {
+            return nil
+        }
+
+        var minX = bitmap.pixelsWide
+        var minY = bitmap.pixelsHigh
+        var maxX = -1
+        var maxY = -1
+
+        for x in 0..<bitmap.pixelsWide {
+            for y in 0..<bitmap.pixelsHigh {
+                guard let color = bitmap.colorAt(x: x, y: y), color.alphaComponent > 0.02 else {
+                    continue
+                }
+                minX = min(minX, x)
+                minY = min(minY, y)
+                maxX = max(maxX, x)
+                maxY = max(maxY, y)
+            }
+        }
+
+        guard maxX >= minX, maxY >= minY else { return nil }
+
+        let cropRect = CGRect(
+            x: minX,
+            y: minY,
+            width: maxX - minX + 1,
+            height: maxY - minY + 1
+        )
+        guard let cgImage = bitmap.cgImage?.cropping(to: cropRect) else { return nil }
+
+        let side = max(cgImage.width, cgImage.height)
+        let canvas = NSImage(size: NSSize(width: side, height: side))
+        canvas.lockFocus()
+        NSGraphicsContext.current?.imageInterpolation = .high
+        NSColor.clear.setFill()
+        NSRect(x: 0, y: 0, width: side, height: side).fill()
+        NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height)).draw(
+            in: NSRect(
+                x: CGFloat(side - cgImage.width) / 2,
+                y: CGFloat(side - cgImage.height) / 2,
+                width: CGFloat(cgImage.width),
+                height: CGFloat(cgImage.height)
+            )
+        )
+        canvas.unlockFocus()
+        return canvas
+    }
 
     private static func makeImage(svgPath: String, viewBox: CGFloat, inset: CGFloat, style: DrawStyle) -> NSImage {
         let parsed = SVGPathParser.parse(svgPath)

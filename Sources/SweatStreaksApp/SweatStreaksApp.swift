@@ -24,8 +24,14 @@ private struct MenuBarLabel: View {
         let items = MenuBarStreakDisplay.items(
             metrics: model.metrics,
             statuses: model.todayStatuses,
+            trackGitHub: model.trackGitHubProvider,
+            trackLeetCode: model.trackLeetCodeProvider,
+            trackCodex: model.trackCodexProvider,
+            trackClaudeCode: model.trackClaudeCodeProvider,
             showGitHub: model.showGitHubStreakInMenuBar,
             showLeetCode: model.showLeetCodeStreakInMenuBar,
+            showCodex: model.showCodexStreakInMenuBar,
+            showClaudeCode: model.showClaudeCodeStreakInMenuBar,
             showCombined: model.showCombinedStreakInMenuBar
         )
 

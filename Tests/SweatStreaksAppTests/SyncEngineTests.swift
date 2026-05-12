@@ -172,7 +172,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(state?.isStale, true)
     }
 
-    func testMultiProviderSyncDerivesCombinedAfterBothProvidersRun() async throws {
+    func testMultiProviderSyncDerivesCombinedAfterAllRequiredProvidersRun() async throws {
         let manager = try DatabaseManager(inMemory: true)
         let repository = SweatRepository(dbQueue: manager.dbQueue)
         let day = LocalDay(year: 2026, month: 2, day: 18)
@@ -207,13 +207,43 @@ final class SyncEngineTests: XCTestCase {
                 )
             ]
         )
+        let codexScript = ProviderScript(
+            events: [
+                .success(
+                    ProviderFetchResult(
+                        source: .codex,
+                        days: [day: .active],
+                        fetchedRange: range,
+                        rateLimitedUntil: nil,
+                        authError: false,
+                        warning: nil
+                    )
+                )
+            ]
+        )
+        let claudeCodeScript = ProviderScript(
+            events: [
+                .success(
+                    ProviderFetchResult(
+                        source: .claudeCode,
+                        days: [day: .active],
+                        fetchedRange: range,
+                        rateLimitedUntil: nil,
+                        authError: false,
+                        warning: nil
+                    )
+                )
+            ]
+        )
 
         let service = DefaultSyncService(
             repository: repository,
             clock: FixedClock(now: now),
             providerFactories: [
                 .github: { ScriptedProvider(source: .github, script: githubScript) },
-                .leetcode: { ScriptedProvider(source: .leetcode, script: leetCodeScript) }
+                .leetcode: { ScriptedProvider(source: .leetcode, script: leetCodeScript) },
+                .codex: { ScriptedProvider(source: .codex, script: codexScript) },
+                .claudeCode: { ScriptedProvider(source: .claudeCode, script: claudeCodeScript) }
             ],
             sleepFunction: { _ in },
             jitterFunction: { _ in 0 }
@@ -224,10 +254,114 @@ final class SyncEngineTests: XCTestCase {
         let combined = try repository.fetchActivityDayRecord(day: day, source: .combined)
         let githubState = try repository.fetchProviderSyncState(source: .github)
         let leetCodeState = try repository.fetchProviderSyncState(source: .leetcode)
+        let codexState = try repository.fetchProviderSyncState(source: .codex)
+        let claudeCodeState = try repository.fetchProviderSyncState(source: .claudeCode)
 
         XCTAssertEqual(combined?.status, .active)
         XCTAssertNotNil(githubState?.lastSuccessAt)
         XCTAssertNotNil(leetCodeState?.lastSuccessAt)
+        XCTAssertNotNil(codexState?.lastSuccessAt)
+        XCTAssertNotNil(claudeCodeState?.lastSuccessAt)
+    }
+
+    func testCombinedUsesOnlyEnabledProviderTrackingSourcesDuringSync() async throws {
+        let day = LocalDay(year: 2026, month: 2, day: 18)
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let range = fetchedRange(for: day)
+
+        let disabledManager = try DatabaseManager(inMemory: true)
+        let disabledRepository = SweatRepository(dbQueue: disabledManager.dbQueue)
+        let disabledGitHubScript = ProviderScript(
+            events: [
+                .success(
+                    ProviderFetchResult(
+                        source: .github,
+                        days: [day: .active],
+                        fetchedRange: range,
+                        rateLimitedUntil: nil,
+                        authError: false,
+                        warning: nil
+                    )
+                )
+            ]
+        )
+        let disabledLeetCodeScript = ProviderScript(
+            events: [
+                .success(
+                    ProviderFetchResult(
+                        source: .leetcode,
+                        days: [day: .inactive],
+                        fetchedRange: range,
+                        rateLimitedUntil: nil,
+                        authError: false,
+                        warning: nil
+                    )
+                )
+            ]
+        )
+        let disabledService = DefaultSyncService(
+            repository: disabledRepository,
+            clock: FixedClock(now: now),
+            providerFactories: [
+                .github: { ScriptedProvider(source: .github, script: disabledGitHubScript) },
+                .leetcode: { ScriptedProvider(source: .leetcode, script: disabledLeetCodeScript) }
+            ],
+            combinedRequiredSources: [.github],
+            sleepFunction: { _ in },
+            jitterFunction: { _ in 0 }
+        )
+
+        await disabledService.refreshNow(trigger: .manual)
+
+        let disabledCombined = try disabledRepository.fetchActivityDayRecord(day: day, source: .combined)
+        XCTAssertEqual(disabledCombined?.status, .active)
+
+        let enabledManager = try DatabaseManager(inMemory: true)
+        let enabledRepository = SweatRepository(dbQueue: enabledManager.dbQueue)
+        let enabledGitHubScript = ProviderScript(
+            events: [
+                .success(
+                    ProviderFetchResult(
+                        source: .github,
+                        days: [day: .active],
+                        fetchedRange: range,
+                        rateLimitedUntil: nil,
+                        authError: false,
+                        warning: nil
+                    )
+                )
+            ]
+        )
+        let enabledLeetCodeScript = ProviderScript(
+            events: [
+                .success(
+                    ProviderFetchResult(
+                        source: .leetcode,
+                        days: [day: .inactive],
+                        fetchedRange: range,
+                        rateLimitedUntil: nil,
+                        authError: false,
+                        warning: nil
+                    )
+                )
+            ]
+        )
+        let enabledService = DefaultSyncService(
+            repository: enabledRepository,
+            clock: FixedClock(now: now),
+            providerFactories: [
+                .github: { ScriptedProvider(source: .github, script: enabledGitHubScript) },
+                .leetcode: { ScriptedProvider(source: .leetcode, script: enabledLeetCodeScript) }
+            ],
+            combinedRequiredSources: [.github, .leetcode],
+            sleepFunction: { _ in },
+            jitterFunction: { _ in 0 }
+        )
+
+        await enabledService.refreshNow(trigger: .manual)
+
+        let enabledCombined = try enabledRepository.fetchActivityDayRecord(day: day, source: .combined)
+        XCTAssertEqual(enabledCombined?.status, .inactive)
     }
 
     func testManualOverrideAffectsCombinedDuringSync() async throws {

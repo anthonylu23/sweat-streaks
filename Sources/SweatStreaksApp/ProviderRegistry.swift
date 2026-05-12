@@ -1,6 +1,8 @@
 import Foundation
 import SweatStreaksCore
 import SweatStreaksPersistence
+import SweatStreaksProviderClaudeCode
+import SweatStreaksProviderCodex
 import SweatStreaksProviderGitHub
 import SweatStreaksProviderLeetCode
 
@@ -12,13 +14,17 @@ enum ProviderRegistry {
     static func makeProviderFactories(
         githubUsername: String,
         leetCodeUsername: String,
+        trackGitHubProvider: Bool,
+        trackLeetCodeProvider: Bool,
+        trackCodexProvider: Bool,
+        trackClaudeCodeProvider: Bool,
         secretStore: SecretStore,
         githubPATKey: String
     ) -> [ActivitySource: DefaultSyncService.ProviderFactory] {
         var factories: [ActivitySource: DefaultSyncService.ProviderFactory] = [:]
 
         let githubUsername = githubUsername.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !githubUsername.isEmpty {
+        if trackGitHubProvider && !githubUsername.isEmpty {
             factories[.github] = { [secretStore] in
                 let token = try secretStore.getSecret(for: githubPATKey) ?? ""
                 guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -29,12 +35,35 @@ enum ProviderRegistry {
         }
 
         let leetCodeUsername = leetCodeUsername.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !leetCodeUsername.isEmpty {
+        if trackLeetCodeProvider && !leetCodeUsername.isEmpty {
             factories[.leetcode] = {
                 LeetCodeProvider(username: leetCodeUsername)
             }
         }
 
+        if trackCodexProvider {
+            factories[.codex] = {
+                CodexProvider()
+            }
+        }
+
+        if trackClaudeCodeProvider {
+            factories[.claudeCode] = {
+                ClaudeCodeProvider()
+            }
+        }
+
         return factories
+    }
+
+    static func hasLocalData(for source: ActivitySource) -> Bool {
+        switch source {
+        case .codex:
+            return CodexProvider.hasLocalActivityLogs()
+        case .claudeCode:
+            return ClaudeCodeProvider.hasLocalActivityLogs()
+        case .github, .leetcode, .combined:
+            return false
+        }
     }
 }
