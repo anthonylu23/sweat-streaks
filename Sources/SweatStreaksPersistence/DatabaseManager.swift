@@ -12,6 +12,7 @@ public final class DatabaseManager {
             let parentDirectory = URL(fileURLWithPath: databasePath).deletingLastPathComponent()
             try FileManager.default.createDirectory(at: parentDirectory, withIntermediateDirectories: true)
             dbQueue = try DatabaseQueue(path: databasePath)
+            try Self.restrictDatabasePermissions(at: databasePath)
         }
 
         let migrator = Self.makeMigrator()
@@ -28,6 +29,14 @@ public final class DatabaseManager {
         let directory = appSupport.appendingPathComponent("SweatStreaks", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory.appendingPathComponent("sweat_streaks.sqlite").path
+    }
+
+    private static func restrictDatabasePermissions(at path: String) throws {
+        guard FileManager.default.fileExists(atPath: path) else { return }
+        try FileManager.default.setAttributes(
+            [.posixPermissions: NSNumber(value: Int16(0o600))],
+            ofItemAtPath: path
+        )
     }
 
     private static func makeMigrator() -> DatabaseMigrator {
@@ -91,6 +100,21 @@ public final class DatabaseManager {
             try db.execute(sql: """
                 CREATE INDEX IF NOT EXISTS idx_sync_runs_provider_started_at
                 ON sync_runs(provider, started_at DESC);
+            """)
+        }
+
+        migrator.registerMigration("createProviderStates") { db in
+            try db.execute(sql: """
+                CREATE TABLE IF NOT EXISTS provider_states (
+                  source TEXT PRIMARY KEY,
+                  last_success_at DATETIME,
+                  cooldown_until DATETIME,
+                  last_error TEXT,
+                  is_stale INTEGER NOT NULL DEFAULT 0,
+                  updated_at DATETIME NOT NULL,
+                  CHECK (source IN ('github','leetcode','combined')),
+                  CHECK (is_stale IN (0, 1))
+                );
             """)
         }
 

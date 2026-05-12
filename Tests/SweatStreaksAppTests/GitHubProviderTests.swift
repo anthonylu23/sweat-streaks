@@ -89,6 +89,30 @@ final class GitHubProviderTests: XCTestCase {
         XCTAssertEqual(result.rateLimitedUntil!.timeIntervalSince(now), TimeInterval(retryAfterSeconds), accuracy: 0.01)
     }
 
+    func testRejectsNonHTTPSEndpoint() async {
+        let client = StubHTTPClient { _ in
+            XCTFail("HTTP client should not be called for insecure endpoint")
+            return (Data("{}".utf8), Self.makeResponse(status: 200))
+        }
+
+        let provider = GitHubProvider(
+            username: "me",
+            token: "token",
+            httpClient: client,
+            endpoint: URL(string: "http://api.github.com/graphql")!
+        )
+
+        do {
+            let now = Date()
+            _ = try await provider.fetchActivityDays(range: now...now)
+            XCTFail("Expected HTTPS enforcement error")
+        } catch ProviderError.unknown(let message) {
+            XCTAssertEqual(message, "GitHub endpoint must use HTTPS.")
+        } catch {
+            XCTFail("Expected HTTPS enforcement error, got \(error)")
+        }
+    }
+
     private static func makeResponse(status: Int, headers: [String: String] = [:]) -> HTTPURLResponse {
         HTTPURLResponse(
             url: URL(string: "https://api.github.com/graphql")!,

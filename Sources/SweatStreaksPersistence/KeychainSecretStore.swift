@@ -24,10 +24,11 @@ public final class KeychainSecretStore: SecretStore {
             throw SecretStoreError.invalidData
         }
 
-        let query = baseQuery(for: key)
+        let query = lookupQuery(for: key)
 
         let attributes: [String: Any] = [
-            kSecValueData as String: valueData
+            kSecValueData as String: valueData,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
 
         let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
@@ -36,7 +37,7 @@ public final class KeychainSecretStore: SecretStore {
         }
 
         if updateStatus == errSecItemNotFound {
-            var insertQuery = query
+            var insertQuery = baseQuery(for: key)
             insertQuery[kSecValueData as String] = valueData
             let addStatus = SecItemAdd(insertQuery as CFDictionary, nil)
             guard addStatus == errSecSuccess else {
@@ -49,7 +50,7 @@ public final class KeychainSecretStore: SecretStore {
     }
 
     public func getSecret(for key: String) throws -> String? {
-        var query = baseQuery(for: key)
+        var query = lookupQuery(for: key)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
 
@@ -73,13 +74,19 @@ public final class KeychainSecretStore: SecretStore {
     }
 
     public func deleteSecret(for key: String) throws {
-        let status = SecItemDelete(baseQuery(for: key) as CFDictionary)
+        let status = SecItemDelete(lookupQuery(for: key) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw SecretStoreError.unexpectedStatus(status)
         }
     }
 
     private func baseQuery(for key: String) -> [String: Any] {
+        var query = lookupQuery(for: key)
+        query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        return query
+    }
+
+    private func lookupQuery(for key: String) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

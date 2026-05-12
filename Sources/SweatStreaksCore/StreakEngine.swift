@@ -24,12 +24,13 @@ public enum StreakEngine {
         source: ActivitySource,
         days: [LocalDay: DayStatus],
         asOf: LocalDay,
+        currentStreakAsOf: LocalDay? = nil,
         in timeZone: TimeZone = .current
     ) -> StreakMetrics {
         let orderedDays = days.keys.sorted()
         let lastActiveDay = orderedDays.last(where: { days[$0] == .active })
 
-        let current = currentStreak(days: days, asOf: asOf, in: timeZone)
+        let current = currentStreak(days: days, asOf: currentStreakAsOf ?? asOf, in: timeZone)
         let longest = longestStreak(days: days, in: timeZone)
 
         return StreakMetrics(
@@ -55,6 +56,7 @@ public enum StreakEngine {
 
     private static func currentStreak(days: [LocalDay: DayStatus], asOf: LocalDay, in timeZone: TimeZone) -> Int {
         guard var cursorDate = asOf.date(in: timeZone) else { return 0 }
+        let calendar = calendar(in: timeZone)
         var streak = 0
 
         while true {
@@ -62,7 +64,7 @@ public enum StreakEngine {
             guard days[cursorDay] == .active else { break }
             streak += 1
 
-            guard let previous = Calendar.current.date(byAdding: .day, value: -1, to: cursorDate) else { break }
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: cursorDate) else { break }
             cursorDate = previous
         }
 
@@ -72,6 +74,7 @@ public enum StreakEngine {
     private static func longestStreak(days: [LocalDay: DayStatus], in timeZone: TimeZone) -> Int {
         let sorted = days.keys.sorted()
         guard !sorted.isEmpty else { return 0 }
+        let calendar = calendar(in: timeZone)
 
         var longest = 0
         var running = 0
@@ -87,7 +90,7 @@ public enum StreakEngine {
             guard let dayDate = day.date(in: timeZone) else { continue }
 
             if let previousDate {
-                let delta = Calendar.current.dateComponents([.day], from: previousDate, to: dayDate).day
+                let delta = calendar.dateComponents([.day], from: previousDate, to: dayDate).day
                 if delta == 1 {
                     running += 1
                 } else {
@@ -106,12 +109,13 @@ public enum StreakEngine {
 
     private static func completionRate(days: [LocalDay: DayStatus], window: Int, asOf: LocalDay, in timeZone: TimeZone) -> Double {
         guard window > 0, let endDate = asOf.date(in: timeZone) else { return 0 }
+        let calendar = calendar(in: timeZone)
 
         var activeCount = 0
         var total = 0
 
         for offset in 0..<window {
-            guard let candidateDate = Calendar.current.date(byAdding: .day, value: -offset, to: endDate) else {
+            guard let candidateDate = calendar.date(byAdding: .day, value: -offset, to: endDate) else {
                 continue
             }
             let candidateDay = LocalDay.from(date: candidateDate, in: timeZone)
@@ -123,5 +127,11 @@ public enum StreakEngine {
 
         guard total > 0 else { return 0 }
         return Double(activeCount) / Double(total)
+    }
+
+    private static func calendar(in timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
     }
 }

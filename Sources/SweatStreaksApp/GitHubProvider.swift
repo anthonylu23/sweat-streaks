@@ -39,6 +39,10 @@ struct GitHubProvider: ActivityProvider {
     }
 
     func fetchActivityDays(range: ClosedRange<Date>) async throws -> ProviderFetchResult {
+        guard endpoint.scheme == "https" else {
+            throw ProviderError.unknown(message: "GitHub endpoint must use HTTPS.")
+        }
+
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

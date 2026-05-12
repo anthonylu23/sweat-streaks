@@ -113,6 +113,24 @@ public final class SweatRepository {
         }
     }
 
+    public func deleteActivityDayRecord(day: LocalDay, source: ActivitySource) throws {
+        try dbQueue.write { db in
+            try db.execute(
+                sql: "DELETE FROM activity_days WHERE date_local = ? AND source = ?",
+                arguments: [day.isoDate, source.rawValue]
+            )
+        }
+    }
+
+    public func deleteActivityDays(after day: LocalDay) throws {
+        try dbQueue.write { db in
+            try db.execute(
+                sql: "DELETE FROM activity_days WHERE date_local > ?",
+                arguments: [day.isoDate]
+            )
+        }
+    }
+
     public func fetchActivityDays(source: ActivitySource, from: LocalDay, to: LocalDay) throws -> [LocalDay: DayStatus] {
         try dbQueue.read { db in
             let rows = try Row.fetchAll(
@@ -224,6 +242,124 @@ public final class SweatRepository {
                 createdAt: row["created_at"],
                 updatedAt: row["updated_at"]
             )
+        }
+    }
+
+    public func fetchManualOverrides(from: LocalDay, to: LocalDay) throws -> [LocalDay: [ActivitySource: ManualOverride]] {
+        try dbQueue.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT date_local, source, status, note, created_at, updated_at
+                    FROM manual_overrides
+                    WHERE date_local >= ? AND date_local <= ?
+                    ORDER BY date_local ASC
+                """,
+                arguments: [from.isoDate, to.isoDate]
+            )
+
+            var overrides: [LocalDay: [ActivitySource: ManualOverride]] = [:]
+            for row in rows {
+                guard let parsedDay = LocalDay(isoDate: row["date_local"]),
+                      let parsedSource = ActivitySource(rawValue: row["source"]),
+                      let parsedStatus = OverrideStatus(rawValue: row["status"]) else {
+                    continue
+                }
+
+                let override = ManualOverride(
+                    day: parsedDay,
+                    source: parsedSource,
+                    status: parsedStatus,
+                    note: row["note"],
+                    createdAt: row["created_at"],
+                    updatedAt: row["updated_at"]
+                )
+                overrides[parsedDay, default: [:]][parsedSource] = override
+            }
+            return overrides
+        }
+    }
+
+    public func upsertProviderSyncState(_ state: ProviderSyncState, updatedAt: Date = Date()) throws {
+        try dbQueue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO provider_states (source, last_success_at, cooldown_until, last_error, is_stale, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(source)
+                    DO UPDATE SET
+                      last_success_at = excluded.last_success_at,
+                      cooldown_until = excluded.cooldown_until,
+                      last_error = excluded.last_error,
+                      is_stale = excluded.is_stale,
+                      updated_at = excluded.updated_at;
+                """,
+                arguments: [
+                    state.source.rawValue,
+                    state.lastSuccessAt,
+                    state.cooldownUntil,
+                    state.lastError,
+                    state.isStale ? 1 : 0,
+                    updatedAt
+                ]
+            )
+        }
+    }
+
+    public func fetchProviderSyncState(source: ActivitySource) throws -> ProviderSyncState? {
+        try dbQueue.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: """
+                    SELECT source, last_success_at, cooldown_until, last_error, is_stale
+                    FROM provider_states
+                    WHERE source = ?
+                """,
+                arguments: [source.rawValue]
+            ) else {
+                return nil
+            }
+
+            guard let parsedSource = ActivitySource(rawValue: row["source"]) else {
+                return nil
+            }
+
+            let isStaleValue: Int = row["is_stale"]
+            return ProviderSyncState(
+                source: parsedSource,
+                lastSuccessAt: row["last_success_at"],
+                cooldownUntil: row["cooldown_until"],
+                lastError: row["last_error"],
+                isStale: isStaleValue == 1
+            )
+        }
+    }
+
+    public func fetchProviderSyncStates() throws -> [ActivitySource: ProviderSyncState] {
+        try dbQueue.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT source, last_success_at, cooldown_until, last_error, is_stale
+                    FROM provider_states
+                """
+            )
+
+            var states: [ActivitySource: ProviderSyncState] = [:]
+            for row in rows {
+                guard let parsedSource = ActivitySource(rawValue: row["source"]) else {
+                    continue
+                }
+                let isStaleValue: Int = row["is_stale"]
+                states[parsedSource] = ProviderSyncState(
+                    source: parsedSource,
+                    lastSuccessAt: row["last_success_at"],
+                    cooldownUntil: row["cooldown_until"],
+                    lastError: row["last_error"],
+                    isStale: isStaleValue == 1
+                )
+            }
+            return states
         }
     }
 
@@ -341,6 +477,10 @@ public enum SettingsKey: String {
     case refreshIntervalMinutes
     case notificationsEnabled
     case reminderHour
+    case lastRiskNotificationDay
+    case showGitHubStreakInMenuBar
+    case showLeetCodeStreakInMenuBar
+    case showCombinedStreakInMenuBar
 }
 
 public final class SQLiteSettingsStore: SettingsStore {
