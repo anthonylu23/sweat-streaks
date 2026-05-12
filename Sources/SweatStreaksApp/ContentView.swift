@@ -306,6 +306,11 @@ struct ContentView: View {
             .buttonStyle(.bordered)
             .help("Settings")
 
+            Button("Quit") {
+                NSApp.terminate(nil)
+            }
+            .buttonStyle(.bordered)
+
             Menu {
                 Section("Override today") {
                     ForEach(model.trackedProviderSources, id: \.self) { source in
@@ -313,10 +318,6 @@ struct ContentView: View {
                             overrideMenuItems(for: source)
                         }
                     }
-                }
-                Divider()
-                Button("Quit Sweat Streaks") {
-                    NSApp.terminate(nil)
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -326,6 +327,7 @@ struct ContentView: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .help("More")
+
         }
         .padding(.horizontal, DS.Spacing.s)
         .padding(.vertical, DS.Spacing.xs)
