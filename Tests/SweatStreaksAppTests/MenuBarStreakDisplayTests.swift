@@ -27,11 +27,22 @@ final class MenuBarStreakDisplayTests: XCTestCase {
         XCTAssertEqual(items.map(\.current), [4, 10])
         XCTAssertEqual(items.map(\.status), [.active, .unknown])
         XCTAssertEqual(
-            MenuBarStreakDisplay.iconName(for: .github, status: .active),
-            "chevron.left.forwardslash.chevron.right"
+            MenuBarStreakDisplay.accessibilityLabel(for: items),
+            "Sweat Streaks: GitHub 4-day streak, today active; Combined 10-day streak, today unknown"
         )
-        XCTAssertEqual(MenuBarStreakDisplay.iconName(for: .combined, status: .active), "flame.fill")
-        XCTAssertEqual(MenuBarStreakDisplay.iconName(for: .combined, status: .unknown), "flame")
+    }
+
+    func testItemsAreEmittedForZeroStreaks() {
+        let items = MenuBarStreakDisplay.items(
+            metrics: [:],
+            statuses: [:],
+            showGitHub: true,
+            showLeetCode: true,
+            showCombined: true
+        )
+
+        XCTAssertEqual(items.map(\.source), [.github, .leetcode, .combined])
+        XCTAssertEqual(items.map(\.current), [0, 0, 0])
     }
 
     func testAccessibilityLabelFallsBackWhenAllSourcesHidden() {

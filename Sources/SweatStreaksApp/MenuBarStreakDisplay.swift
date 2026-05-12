@@ -31,31 +31,6 @@ enum MenuBarStreakDisplay {
         }
     }
 
-    static func iconName(for source: ActivitySource, status: DayStatus) -> String {
-        switch source {
-        case .github:
-            return "chevron.left.forwardslash.chevron.right"
-        case .leetcode:
-            return "curlybraces"
-        case .combined:
-            return status == .active ? "flame.fill" : "flame"
-        }
-    }
-
-    static func letter(for source: ActivitySource) -> String {
-        switch source {
-        case .github: return "G"
-        case .leetcode: return "L"
-        case .combined: return "C"
-        }
-    }
-
-    static func compactTitle(for items: [MenuBarStreakItem]) -> String {
-        items
-            .map { "\(letter(for: $0.source)) \($0.current)" }
-            .joined(separator: " · ")
-    }
-
     static func accessibilityLabel(for items: [MenuBarStreakItem]) -> String {
         guard !items.isEmpty else {
             return "Sweat Streaks"

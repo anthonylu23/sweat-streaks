@@ -93,25 +93,51 @@ struct StatusDot: View {
     }
 }
 
+struct SourceIcon: View {
+    let source: ActivitySource
+    var size: CGFloat = 14
+
+    var body: some View {
+        icon
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        switch source {
+        case .github:
+            Image(nsImage: BrandIcon.github)
+                .resizable()
+                .renderingMode(.template)
+                .interpolation(.high)
+                .scaledToFit()
+                .foregroundStyle(DS.Palette.github)
+        case .leetcode:
+            Image(nsImage: BrandIcon.leetcode)
+                .resizable()
+                .renderingMode(.template)
+                .interpolation(.high)
+                .scaledToFit()
+                .foregroundStyle(DS.Palette.leetcode)
+        case .combined:
+            Image(systemName: "flame.fill")
+                .font(.system(size: size, weight: .semibold))
+                .foregroundStyle(DS.Palette.combined)
+        }
+    }
+}
+
 struct SourceBadge: View {
     let source: ActivitySource
 
     var body: some View {
         HStack(spacing: DS.Spacing.xs) {
-            Image(systemName: symbolName)
-                .font(.system(size: 11, weight: .semibold))
+            SourceIcon(source: source, size: 12)
             Text(label)
                 .font(DS.Typography.captionStrong)
         }
         .foregroundStyle(DS.Palette.active(for: source))
-    }
-
-    private var symbolName: String {
-        switch source {
-        case .github: return "chevron.left.forwardslash.chevron.right"
-        case .leetcode: return "curlybraces"
-        case .combined: return "flame.fill"
-        }
     }
 
     private var label: String {

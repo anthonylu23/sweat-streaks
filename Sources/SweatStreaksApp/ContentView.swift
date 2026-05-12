@@ -124,9 +124,7 @@ struct ContentView: View {
         let hasOverride = source != .combined && model.todayOverrides[source] != nil
 
         return HStack(spacing: 6) {
-            Image(systemName: sourceIcon(source))
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.secondary)
+            SourceIcon(source: source, size: 12)
                 .frame(width: 12)
 
             StatusDot(status: status, source: source, size: 8)
@@ -158,14 +156,6 @@ struct ContentView: View {
             parts.append(diagnostic)
         }
         return parts.joined(separator: " - ")
-    }
-
-    private func sourceIcon(_ source: ActivitySource) -> String {
-        switch source {
-        case .github: return "chevron.left.forwardslash.chevron.right"
-        case .leetcode: return "curlybraces"
-        case .combined: return "flame.fill"
-        }
     }
 
     @ViewBuilder
@@ -256,14 +246,20 @@ struct ContentView: View {
                 Button {
                     SettingsWindowPresenter.show(model: model)
                 } label: {
-                    Label("Connect GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                    HStack(spacing: DS.Spacing.xs) {
+                        SourceIcon(source: .github, size: 14)
+                        Text("Connect GitHub")
+                    }
                 }
                 .buttonStyle(.borderedProminent)
 
                 Button {
                     SettingsWindowPresenter.show(model: model)
                 } label: {
-                    Label("Connect LeetCode", systemImage: "curlybraces")
+                    HStack(spacing: DS.Spacing.xs) {
+                        SourceIcon(source: .leetcode, size: 14)
+                        Text("Connect LeetCode")
+                    }
                 }
                 .buttonStyle(.bordered)
             }
