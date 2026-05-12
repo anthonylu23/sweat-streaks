@@ -69,8 +69,9 @@ SweatStreaksCore
 - Current streak display uses an app-level end-of-day grace anchor: provider inactive/unknown today calculates current streak through yesterday, while manual inactive overrides anchor to today and reset immediately.
 - GitHub PAT is stored in Keychain, not in SQLite settings, and is not loaded back into the settings UI.
 - LeetCode uses the public profile calendar and fills fetched-but-missing days as inactive.
-- Codex uses local JSONL logs under `~/.codex/sessions` and `~/.codex/archived_sessions`; Claude Code uses local JSONL logs under `~/.claude/history.jsonl` and `~/.claude/projects`.
-- Cursor uses AI usage evidence from local agent transcript metadata, worker logs, chat store metadata, `~/.cursor/ai-tracking/ai-code-tracking.db`, and Cursor global `aiCodeTracking.dailyStats` keys.
+- Codex uses local JSONL logs under the configured Codex path, defaulting to `~/.codex`, and scans `sessions` plus `archived_sessions`.
+- Claude Code uses local JSONL logs under the configured Claude Code path, defaulting to `~/.claude`, and scans `history.jsonl` plus `projects`.
+- Cursor uses AI usage evidence under configured Cursor paths, defaulting to `~/.cursor` and `~/Library/Application Support/Cursor`, including local agent transcript metadata, worker logs, chat store metadata, `ai-tracking/ai-code-tracking.db`, and global `aiCodeTracking.dailyStats` keys.
 - Local providers map at least one valid timestamp/evidence item in the requested local day to `active`; fetched days with no evidence are `inactive`.
 - Codex, Claude Code, and Cursor auth token values, prompt text, chat text, and edited file contents are not read, persisted, displayed, or transmitted.
 - Provider days outside the requested local-day fetch window are ignored before persistence, and stale future rows are deleted on refresh, to avoid UTC spillover rows.
@@ -117,8 +118,9 @@ SweatStreaksCore
 - The GitHub status row exposes the latest contribution-calendar day/status as hover help so users can distinguish raw commits from GitHub-counted contributions.
 - Settings are hosted in a reusable `NSWindow` with an `NSHostingController`, which avoids relying on SwiftUI's settings responder-chain action from a menu-bar-only surface.
 - Settings include a general `Start on login` toggle backed by `LaunchAtLoginManager`, which wraps `SMAppService.mainApp` registration/unregistration behind a testable protocol.
-- Settings persist independent tracking toggles for GitHub, LeetCode, Codex, Claude Code, and Cursor. `ProviderRegistry` only builds sync factories for providers whose tracking toggle and required account/local configuration are present, and the app passes the same enabled-source list as the Combined required-source list, so a saved username or PAT can remain in storage while provider activity sync is disabled.
+- Settings persist independent tracking toggles for GitHub, LeetCode, Codex, Claude Code, and Cursor. They also persist local provider root paths for Codex, Claude Code, and Cursor; folder picker controls choose those roots, reset controls restore documented defaults, and blank stored values are normalized back to defaults before save. `ProviderRegistry` only builds sync factories for providers whose tracking toggle and required account/local configuration are present, and the app passes the same enabled-source list as the Combined required-source list, so a saved username or PAT can remain in storage while provider activity sync is disabled.
 - GitHub, LeetCode, Codex, Claude Code, and Cursor each render as separate settings sections with the same provider header and connection status pattern.
+- Codex and Claude Code expose one folder picker each. Cursor exposes both its `~/.cursor` data root and its `~/Library/Application Support/Cursor` app-support root because usage evidence can live in either location.
 - The app uses an `NSApplicationDelegate` to set regular activation policy at launch so AppKit can give the settings window normal keyboard focus.
 - The menu bar Settings button defers opening to the next main-actor turn, activates the app, explicitly makes the settings window key/front, and focuses the GitHub username field on appear.
 - `AppIconManager` sets `NSApp.applicationIconImage` from bundled dark/light PNG resources at launch and when macOS appearance changes. This keeps the icon visible for SwiftPM-launched builds where there is no packaged app icon bundle.
@@ -128,4 +130,5 @@ SweatStreaksCore
 2. Add a LeetCode fallback adapter if the public GraphQL calendar becomes unreliable.
 3. Add UI smoke tests around menu bar state, settings, and override flows.
 4. Consider extracting provider diagnostics into a dedicated view once sync history grows.
-5. Consider preserving session counts or token/cost metrics separately from active-day status if product needs grow.
+5. Add path discovery diagnostics that show which configured local roots produced activity evidence without exposing file contents.
+6. Consider preserving session counts or token/cost metrics separately from active-day status if product needs grow.

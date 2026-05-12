@@ -686,8 +686,8 @@ enum SettingsWindowPresenter {
                 let settingsWindow = NSWindow(contentViewController: hostingController)
                 settingsWindow.title = "Sweat Streaks Settings"
                 settingsWindow.styleMask = [.titled, .closable, .miniaturizable]
-                settingsWindow.setContentSize(NSSize(width: 500, height: 620))
-                settingsWindow.minSize = NSSize(width: 480, height: 540)
+                settingsWindow.setContentSize(NSSize(width: 500, height: 700))
+                settingsWindow.minSize = NSSize(width: 480, height: 600)
                 settingsWindow.isReleasedWhenClosed = false
                 settingsWindow.collectionBehavior.insert(.moveToActiveSpace)
                 settingsWindow.center()
@@ -786,26 +786,50 @@ struct SettingsView: View {
 
                 Section {
                     Toggle("Track Codex local activity", isOn: $model.trackCodexProvider)
+                    FolderPathPicker(
+                        title: "Choose Codex Folder",
+                        label: "Codex path",
+                        path: $model.codexPath,
+                        defaultPath: ProviderRegistry.defaultCodexPath
+                    )
                 } header: {
                     accountHeader(source: .codex, connected: model.isCodexConnected)
                 } footer: {
-                    Text("Reads local Codex session timestamps only. Auth tokens and prompt contents are not stored or displayed.")
+                    Text("Reads local Codex session timestamps under the configured path. Auth tokens and prompt contents are not stored or displayed.")
                 }
 
                 Section {
                     Toggle("Track Claude Code local activity", isOn: $model.trackClaudeCodeProvider)
+                    FolderPathPicker(
+                        title: "Choose Claude Code Folder",
+                        label: "Claude Code path",
+                        path: $model.claudeCodePath,
+                        defaultPath: ProviderRegistry.defaultClaudeCodePath
+                    )
                 } header: {
                     accountHeader(source: .claudeCode, connected: model.isClaudeCodeConnected)
                 } footer: {
-                    Text("Reads local Claude Code history/project timestamps only. Auth tokens and prompt contents are not stored or displayed.")
+                    Text("Reads local Claude Code history/project timestamps under the configured path. Auth tokens and prompt contents are not stored or displayed.")
                 }
 
                 Section {
                     Toggle("Track Cursor local activity", isOn: $model.trackCursorProvider)
+                    FolderPathPicker(
+                        title: "Choose Cursor Folder",
+                        label: "Cursor path",
+                        path: $model.cursorPath,
+                        defaultPath: ProviderRegistry.defaultCursorPath
+                    )
+                    FolderPathPicker(
+                        title: "Choose Cursor App Support Folder",
+                        label: "Cursor app support path",
+                        path: $model.cursorApplicationSupportPath,
+                        defaultPath: ProviderRegistry.defaultCursorApplicationSupportPath
+                    )
                 } header: {
                     accountHeader(source: .cursor, connected: model.isCursorConnected)
                 } footer: {
-                    Text("Reads local Cursor AI usage timestamps and file metadata only. Prompt, chat, and edited file contents are not stored or displayed.")
+                    Text("Reads local Cursor AI usage timestamps and file metadata under the configured paths. Prompt, chat, and edited file contents are not stored or displayed.")
                 }
 
                 Section("Sync") {
@@ -869,7 +893,7 @@ struct SettingsView: View {
             }
             .padding(DS.Spacing.m)
         }
-        .frame(minWidth: 480, idealWidth: 500, minHeight: 540, idealHeight: 620)
+        .frame(minWidth: 480, idealWidth: 500, minHeight: 600, idealHeight: 700)
         .onAppear {
             Task { @MainActor in
                 await Task.yield()
@@ -892,5 +916,92 @@ struct SettingsView: View {
             }
         }
         .textCase(nil)
+    }
+}
+
+private struct FolderPathPicker: View {
+    let title: String
+    let label: String
+    @Binding var path: String
+    let defaultPath: String
+
+    var body: some View {
+        LabeledContent(label) {
+            HStack(spacing: DS.Spacing.s) {
+                Text(displayPath)
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .help(displayPath)
+
+                Button {
+                    chooseFolder()
+                } label: {
+                    Label("Choose", systemImage: "folder")
+                }
+                .controlSize(.small)
+
+                Button {
+                    path = defaultPath
+                } label: {
+                    Label("Reset", systemImage: "arrow.counterclockwise")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+                .help("Reset to default")
+            }
+        }
+    }
+
+    private var displayPath: String {
+        LocalProviderPathSettings.normalizedPath(path, defaultPath: defaultPath)
+    }
+
+    private func chooseFolder() {
+        let panel = NSOpenPanel()
+        panel.title = title
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        panel.directoryURL = initialDirectoryURL()
+
+        guard panel.runModal() == .OK, let selectedURL = panel.url else {
+            return
+        }
+
+        path = Self.homeRelativePath(for: selectedURL)
+    }
+
+    private func initialDirectoryURL() -> URL {
+        let expandedPath = (displayPath as NSString).expandingTildeInPath
+        var candidate = URL(fileURLWithPath: expandedPath, isDirectory: true)
+        var isDirectory: ObjCBool = false
+
+        while !FileManager.default.fileExists(atPath: candidate.path, isDirectory: &isDirectory) || !isDirectory.boolValue {
+            let parent = candidate.deletingLastPathComponent()
+            guard parent.path != candidate.path else {
+                return FileManager.default.homeDirectoryForCurrentUser
+            }
+            candidate = parent
+        }
+
+        return candidate
+    }
+
+    private static func homeRelativePath(for url: URL) -> String {
+        let homePath = FileManager.default.homeDirectoryForCurrentUser.path
+        let selectedPath = url.path
+
+        if selectedPath == homePath {
+            return "~"
+        }
+        if selectedPath.hasPrefix(homePath + "/") {
+            return "~/" + String(selectedPath.dropFirst(homePath.count + 1))
+        }
+        return selectedPath
     }
 }

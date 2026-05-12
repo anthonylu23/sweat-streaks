@@ -37,6 +37,36 @@ final class AppModelSettingsTests: XCTestCase {
         XCTAssertTrue(fixture.model.lastSyncWarning?.contains("expected") == true)
     }
 
+    func testSavingLocalProviderPathsPersistsConfiguredValues() throws {
+        let fixture = try makeFixture(launchAtLoginManager: RecordingLaunchAtLoginManager(isEnabled: false))
+        fixture.model.codexPath = "/tmp/sweat-codex"
+        fixture.model.claudeCodePath = "/tmp/sweat-claude"
+        fixture.model.cursorPath = "/tmp/sweat-cursor"
+        fixture.model.cursorApplicationSupportPath = "/tmp/sweat-cursor-support"
+
+        fixture.model.saveSettings()
+
+        XCTAssertEqual(try fixture.settingsStore.get(.codexPath), "/tmp/sweat-codex")
+        XCTAssertEqual(try fixture.settingsStore.get(.claudeCodePath), "/tmp/sweat-claude")
+        XCTAssertEqual(try fixture.settingsStore.get(.cursorPath), "/tmp/sweat-cursor")
+        XCTAssertEqual(try fixture.settingsStore.get(.cursorApplicationSupportPath), "/tmp/sweat-cursor-support")
+    }
+
+    func testBlankLocalProviderPathsResetToDocumentedDefaults() throws {
+        let fixture = try makeFixture(launchAtLoginManager: RecordingLaunchAtLoginManager(isEnabled: false))
+        fixture.model.codexPath = "  "
+        fixture.model.claudeCodePath = ""
+        fixture.model.cursorPath = "\n"
+        fixture.model.cursorApplicationSupportPath = "\t"
+
+        fixture.model.saveSettings()
+
+        XCTAssertEqual(fixture.model.codexPath, ProviderRegistry.defaultCodexPath)
+        XCTAssertEqual(fixture.model.claudeCodePath, ProviderRegistry.defaultClaudeCodePath)
+        XCTAssertEqual(fixture.model.cursorPath, ProviderRegistry.defaultCursorPath)
+        XCTAssertEqual(fixture.model.cursorApplicationSupportPath, ProviderRegistry.defaultCursorApplicationSupportPath)
+    }
+
     private func makeFixture(
         launchAtLoginManager: RecordingLaunchAtLoginManager
     ) throws -> (

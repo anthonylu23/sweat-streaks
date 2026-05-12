@@ -41,6 +41,10 @@ final class AppModel: ObservableObject {
     @Published var trackCodexProvider: Bool = false
     @Published var trackClaudeCodeProvider: Bool = false
     @Published var trackCursorProvider: Bool = false
+    @Published var codexPath: String = ProviderRegistry.defaultCodexPath
+    @Published var claudeCodePath: String = ProviderRegistry.defaultClaudeCodePath
+    @Published var cursorPath: String = ProviderRegistry.defaultCursorPath
+    @Published var cursorApplicationSupportPath: String = ProviderRegistry.defaultCursorApplicationSupportPath
     @Published var showGitHubStreakInMenuBar: Bool = true
     @Published var showLeetCodeStreakInMenuBar: Bool = true
     @Published var showCodexStreakInMenuBar: Bool = true
@@ -107,15 +111,15 @@ final class AppModel: ObservableObject {
     }
 
     var isCodexConnected: Bool {
-        trackCodexProvider && ProviderRegistry.hasLocalData(for: .codex)
+        trackCodexProvider && ProviderRegistry.hasLocalData(for: .codex, localProviderPaths: localProviderPaths)
     }
 
     var isClaudeCodeConnected: Bool {
-        trackClaudeCodeProvider && ProviderRegistry.hasLocalData(for: .claudeCode)
+        trackClaudeCodeProvider && ProviderRegistry.hasLocalData(for: .claudeCode, localProviderPaths: localProviderPaths)
     }
 
     var isCursorConnected: Bool {
-        trackCursorProvider && ProviderRegistry.hasLocalData(for: .cursor)
+        trackCursorProvider && ProviderRegistry.hasLocalData(for: .cursor, localProviderPaths: localProviderPaths)
     }
 
     var isOnboardingNeeded: Bool {
@@ -215,6 +219,11 @@ final class AppModel: ObservableObject {
             try settingsStore.set(trackCodexProvider ? "true" : "false", for: .trackCodexProvider)
             try settingsStore.set(trackClaudeCodeProvider ? "true" : "false", for: .trackClaudeCodeProvider)
             try settingsStore.set(trackCursorProvider ? "true" : "false", for: .trackCursorProvider)
+            normalizeLocalProviderPathFields()
+            try settingsStore.set(codexPath, for: .codexPath)
+            try settingsStore.set(claudeCodePath, for: .claudeCodePath)
+            try settingsStore.set(cursorPath, for: .cursorPath)
+            try settingsStore.set(cursorApplicationSupportPath, for: .cursorApplicationSupportPath)
             try settingsStore.set(showGitHubStreakInMenuBar ? "true" : "false", for: .showGitHubStreakInMenuBar)
             try settingsStore.set(showLeetCodeStreakInMenuBar ? "true" : "false", for: .showLeetCodeStreakInMenuBar)
             try settingsStore.set(showCodexStreakInMenuBar ? "true" : "false", for: .showCodexStreakInMenuBar)
@@ -276,11 +285,27 @@ final class AppModel: ObservableObject {
             startOnLogin = try boolSetting(.startOnLogin, default: launchAtLoginManager.isEnabled)
             showGitHubStreakInMenuBar = try boolSetting(.showGitHubStreakInMenuBar, default: true)
             showLeetCodeStreakInMenuBar = try boolSetting(.showLeetCodeStreakInMenuBar, default: true)
+            codexPath = try pathSetting(.codexPath, default: ProviderRegistry.defaultCodexPath)
+            claudeCodePath = try pathSetting(.claudeCodePath, default: ProviderRegistry.defaultClaudeCodePath)
+            cursorPath = try pathSetting(.cursorPath, default: ProviderRegistry.defaultCursorPath)
+            cursorApplicationSupportPath = try pathSetting(
+                .cursorApplicationSupportPath,
+                default: ProviderRegistry.defaultCursorApplicationSupportPath
+            )
             trackGitHubProvider = try boolSetting(.trackGitHubProvider, default: true)
             trackLeetCodeProvider = try boolSetting(.trackLeetCodeProvider, default: true)
-            trackCodexProvider = try boolSetting(.trackCodexProvider, default: ProviderRegistry.hasLocalData(for: .codex))
-            trackClaudeCodeProvider = try boolSetting(.trackClaudeCodeProvider, default: ProviderRegistry.hasLocalData(for: .claudeCode))
-            trackCursorProvider = try boolSetting(.trackCursorProvider, default: ProviderRegistry.hasLocalData(for: .cursor))
+            trackCodexProvider = try boolSetting(
+                .trackCodexProvider,
+                default: ProviderRegistry.hasLocalData(for: .codex, localProviderPaths: localProviderPaths)
+            )
+            trackClaudeCodeProvider = try boolSetting(
+                .trackClaudeCodeProvider,
+                default: ProviderRegistry.hasLocalData(for: .claudeCode, localProviderPaths: localProviderPaths)
+            )
+            trackCursorProvider = try boolSetting(
+                .trackCursorProvider,
+                default: ProviderRegistry.hasLocalData(for: .cursor, localProviderPaths: localProviderPaths)
+            )
             showCodexStreakInMenuBar = try boolSetting(.showCodexStreakInMenuBar, default: true)
             showClaudeCodeStreakInMenuBar = try boolSetting(.showClaudeCodeStreakInMenuBar, default: true)
             showCursorStreakInMenuBar = try boolSetting(.showCursorStreakInMenuBar, default: true)
@@ -310,6 +335,19 @@ final class AppModel: ObservableObject {
             try settingsStore.set(defaultValue ? "true" : "false", for: key)
             return defaultValue
         }
+    }
+
+    private func pathSetting(_ key: SettingsKey, default defaultValue: String) throws -> String {
+        guard let rawValue = try settingsStore.get(key) else {
+            try settingsStore.set(defaultValue, for: key)
+            return defaultValue
+        }
+
+        let normalizedValue = LocalProviderPathSettings.normalizedPath(rawValue, defaultPath: defaultValue)
+        if normalizedValue != rawValue {
+            try settingsStore.set(normalizedValue, for: key)
+        }
+        return normalizedValue
     }
 
     private func finishInitialization(startBackgroundWork: Bool) {
@@ -574,6 +612,7 @@ final class AppModel: ObservableObject {
             trackCodexProvider: trackCodexProvider,
             trackClaudeCodeProvider: trackClaudeCodeProvider,
             trackCursorProvider: trackCursorProvider,
+            localProviderPaths: localProviderPaths,
             secretStore: secretStore,
             githubPATKey: Self.githubPATKey
         )
@@ -609,6 +648,34 @@ final class AppModel: ObservableObject {
                 await self?.refreshNow(trigger: .timer)
             }
         }
+    }
+
+    private var localProviderPaths: LocalProviderPathSettings {
+        LocalProviderPathSettings(
+            codexPath: codexPath,
+            claudeCodePath: claudeCodePath,
+            cursorPath: cursorPath,
+            cursorApplicationSupportPath: cursorApplicationSupportPath
+        )
+    }
+
+    private func normalizeLocalProviderPathFields() {
+        codexPath = LocalProviderPathSettings.normalizedPath(
+            codexPath,
+            defaultPath: ProviderRegistry.defaultCodexPath
+        )
+        claudeCodePath = LocalProviderPathSettings.normalizedPath(
+            claudeCodePath,
+            defaultPath: ProviderRegistry.defaultClaudeCodePath
+        )
+        cursorPath = LocalProviderPathSettings.normalizedPath(
+            cursorPath,
+            defaultPath: ProviderRegistry.defaultCursorPath
+        )
+        cursorApplicationSupportPath = LocalProviderPathSettings.normalizedPath(
+            cursorApplicationSupportPath,
+            defaultPath: ProviderRegistry.defaultCursorApplicationSupportPath
+        )
     }
 
     private func updateLastSyncAt() {

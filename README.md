@@ -47,17 +47,19 @@ LeetCode sync uses LeetCode's public, unofficial GraphQL profile calendar. If th
 ## Local Tool Setup
 1. Open app settings.
 2. Enable `Track Codex local activity`, `Track Claude Code local activity`, and/or `Track Cursor local activity`.
-3. Click `Save`, then `Refresh Now`.
+3. Leave the local paths at their documented defaults or use `Choose` to select folders if your tools store activity somewhere else.
+4. Click `Save`, then `Refresh Now`.
 
 Codex sync reads JSONL timestamps from `~/.codex/sessions` and `~/.codex/archived_sessions`.
 Claude Code sync reads JSONL timestamps from `~/.claude/history.jsonl` and `~/.claude/projects`.
-Cursor sync reads local AI usage evidence from agent transcript metadata, worker logs, chat store metadata, Cursor's local AI-tracking SQLite state, and Cursor's global AI daily-stat keys when present.
+Cursor sync reads local AI usage evidence under `~/.cursor` and `~/Library/Application Support/Cursor`, including agent transcript metadata, worker logs, chat store metadata, Cursor's local AI-tracking SQLite state, and Cursor's global AI daily-stat keys when present.
 The app does not read, persist, display, or transmit Codex, Claude Code, or Cursor auth tokens, prompt text, chat text, or edited file contents.
 
 ## App Settings
 - Enable `Start on login` to register the main menu bar app as a macOS login item for the current user.
 - The setting is applied when you click `Save` or `Done`.
 - Codex, Claude Code, and Cursor each have their own provider section and connection status in Settings.
+- Codex, Claude Code, and Cursor path controls open a folder picker and store selected folders as absolute paths or `~`-prefixed home-relative paths. Use the reset button to restore the documented defaults.
 
 ## Sync Behavior
 - Launch/manual/timer refresh configured providers independently.
@@ -103,6 +105,7 @@ The app does not read, persist, display, or transmit Codex, Claude Code, or Curs
 - `No Codex activity logs found`: Codex tracking is enabled but no local session JSONL files were found.
 - `No Claude Code activity logs found`: Claude Code tracking is enabled but no local history/project JSONL files were found.
 - `No Cursor AI activity found`: Cursor tracking is enabled but no supported local AI usage evidence was found.
+- For local tool warnings, confirm the configured Settings paths point at the directories where that tool stores activity logs or usage metadata.
 - `GitHub data is stale`: no successful sync in >24h.
 - If `swift run` fails in a restricted shell, run outside sandboxed execution.
 

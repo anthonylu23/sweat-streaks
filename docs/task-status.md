@@ -149,3 +149,18 @@
 - Notes:
   - Cursor tracking counts local Cursor AI usage evidence, including chat/agent activity and AI code-tracking state.
   - Prompt text, chat text, edited file contents, and auth tokens are not stored or displayed.
+
+## Phase 13: Local Provider Path Settings
+- Status: Complete
+- Completed:
+  - Added persisted Settings folder picker controls for Codex, Claude Code, and Cursor local usage scanning.
+  - Defaulted Codex to `~/.codex`, Claude Code to `~/.claude`, Cursor data to `~/.cursor`, and Cursor app support to `~/Library/Application Support/Cursor`.
+  - Replaced manual path text entry with native macOS folder selection and reset controls.
+  - Updated `ProviderRegistry` so local provider construction and connection checks use the configured paths.
+  - Normalized blank stored path values back to documented defaults on load/save.
+  - Added app-model tests for path persistence/default reset and registry tests proving configured local paths feed Codex, Claude Code, and Cursor providers.
+- Validation:
+  - `swift test --filter SweatStreaksAppTests`
+  - `swift test`
+  - `swift build`
+  - `swift run SweatStreaksApp` compile/launch check, then stopped after launch

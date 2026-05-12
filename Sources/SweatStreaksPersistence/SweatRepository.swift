@@ -486,6 +486,10 @@ public enum SettingsKey: String {
     case trackCodexProvider
     case trackClaudeCodeProvider
     case trackCursorProvider
+    case codexPath
+    case claudeCodePath
+    case cursorPath
+    case cursorApplicationSupportPath
     case showCodexStreakInMenuBar
     case showClaudeCodeStreakInMenuBar
     case showCursorStreakInMenuBar
