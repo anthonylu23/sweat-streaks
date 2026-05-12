@@ -1,9 +1,9 @@
 # Sweat Streaks
 
-Sweat Streaks is a local-first macOS menu bar app that tracks daily activity streaks for GitHub, LeetCode, Codex, Claude Code, and a Combined status.
+Sweat Streaks is a local-first macOS menu bar app that tracks daily activity streaks for GitHub, LeetCode, Codex, Claude Code, Cursor, and a Combined status.
 
 The menu bar popover uses window-style presentation for interactive controls, and account/preferences fields open in a dedicated macOS settings window with normal keyboard focus.
-The collapsed menu bar item can show GitHub, LeetCode, Codex, Claude Code, and Combined current streak values; each source can be hidden from Settings. Settings also include provider tracking toggles so a configured account can be kept saved while its activity sync is disabled.
+The collapsed menu bar item can show GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined current streak values; each source can be hidden from Settings. Settings also include start-on-login and provider tracking toggles so a configured account can be kept saved while its activity sync is disabled.
 
 ## Current Status
 - Phase 0 complete: baseline planning and docs scaffolding.
@@ -12,6 +12,9 @@ The collapsed menu bar item can show GitHub, LeetCode, Codex, Claude Code, and C
 - MVP provider flow complete: GitHub + LeetCode sync, provider-generic orchestration, persisted provider state, effective manual overrides, combined status derivation, automatic refresh, and daily risk notifications.
 - Provider module refactor complete: GitHub and LeetCode providers now live in separate SwiftPM targets behind the shared core provider contract.
 - Agentic local provider flow complete: Codex and Claude Code local session/history logs map to active days and participate in Combined.
+- Settings polish complete: Codex and Claude Code now use separate provider sections, and the app can register itself to start on login.
+- Popover compact pass complete: the menu bar popover is narrower and uses a tighter, centered heatmap cluster around the 13-week activity grid.
+- Cursor local provider complete: Cursor AI usage evidence maps to active days and can participate in Combined.
 
 ## Requirements
 - macOS 13+
@@ -41,14 +44,20 @@ Use `Save` to persist settings and keep the settings window open, or `Done` to s
 
 LeetCode sync uses LeetCode's public, unofficial GraphQL profile calendar. If that response shape changes, the app will keep last known values and surface the provider error.
 
-## Agentic Tool Setup
+## Local Tool Setup
 1. Open app settings.
-2. Enable `Track Codex local activity` and/or `Track Claude Code local activity`.
+2. Enable `Track Codex local activity`, `Track Claude Code local activity`, and/or `Track Cursor local activity`.
 3. Click `Save`, then `Refresh Now`.
 
 Codex sync reads JSONL timestamps from `~/.codex/sessions` and `~/.codex/archived_sessions`.
 Claude Code sync reads JSONL timestamps from `~/.claude/history.jsonl` and `~/.claude/projects`.
-The app does not read, persist, display, or transmit Codex or Claude Code auth tokens.
+Cursor sync reads local AI usage evidence from agent transcript metadata, worker logs, chat store metadata, Cursor's local AI-tracking SQLite state, and Cursor's global AI daily-stat keys when present.
+The app does not read, persist, display, or transmit Codex, Claude Code, or Cursor auth tokens, prompt text, chat text, or edited file contents.
+
+## App Settings
+- Enable `Start on login` to register the main menu bar app as a macOS login item for the current user.
+- The setting is applied when you click `Save` or `Done`.
+- Codex, Claude Code, and Cursor each have their own provider section and connection status in Settings.
 
 ## Sync Behavior
 - Launch/manual/timer refresh configured providers independently.
@@ -62,7 +71,7 @@ The app does not read, persist, display, or transmit Codex or Claude Code auth t
 - Current streaks use an end-of-day grace rule: if today's provider status is not active yet, the displayed current streak is calculated through yesterday until local midnight. Manual inactive overrides reset immediately.
 - Provider activity is clamped to the requested local-day window before persistence so UTC spillover dates do not create future local rows; stale future rows from earlier runs are removed on refresh.
 - Manual overrides are stored separately from provider data and marked in the popover.
-- The menu bar popover shows compact one-year calendar heatmaps for each provider and Combined activity.
+- The menu bar popover shows compact 13-week calendar heatmaps for each provider and Combined activity, with the heatmap grid and summary stats grouped into a tighter centered cluster.
 - The runtime app icon uses bundled dark and light neutral variants and refreshes when the macOS appearance changes.
 
 ## Security Model
@@ -73,6 +82,7 @@ The app does not read, persist, display, or transmit Codex or Claude Code auth t
 - Provider errors shown in UI are sanitized and do not include response bodies or tokens.
 - LeetCode activity is read from a public profile calendar; do not use this app for private LeetCode activity that is not intended to be visible through that public endpoint.
 - Codex and Claude Code activity is inferred from local timestamped JSONL logs only; prompt content and auth token values are not stored or displayed by Sweat Streaks.
+- Cursor activity is inferred from local AI timestamps, AI file metadata, and local SQLite AI activity keys only. Prompt text, chat text, edited file contents, and auth token values are not stored or displayed.
 
 ## Notifications
 - Enable `Send daily reminder` in settings.
@@ -80,7 +90,7 @@ The app does not read, persist, display, or transmit Codex or Claude Code auth t
 - The app sends at most one risk notification per local day when today's combined status is not active after the reminder hour.
 
 ## Menu Bar Display
-- Enable or hide `GitHub`, `LeetCode`, `Codex`, `Claude Code`, and `Combined` streak values from the Settings window.
+- Enable or hide `GitHub`, `LeetCode`, `Codex`, `Claude Code`, `Cursor`, and `Combined` streak values from the Settings window.
 - Provider menu-bar visibility toggles are disabled when that provider's activity tracking is disabled.
 - The default collapsed status item shows current streak counts as compact icon-and-number pairs.
 - If every source is hidden, the app shows `Sweat` in the menu bar.
@@ -92,6 +102,7 @@ The app does not read, persist, display, or transmit Codex or Claude Code auth t
 - `LeetCode user calendar was unavailable`: username may be wrong or LeetCode's public calendar response changed.
 - `No Codex activity logs found`: Codex tracking is enabled but no local session JSONL files were found.
 - `No Claude Code activity logs found`: Claude Code tracking is enabled but no local history/project JSONL files were found.
+- `No Cursor AI activity found`: Cursor tracking is enabled but no supported local AI usage evidence was found.
 - `GitHub data is stale`: no successful sync in >24h.
 - If `swift run` fails in a restricted shell, run outside sandboxed execution.
 
@@ -111,6 +122,7 @@ swift test
 - `Sources/SweatStreaksApp/Resources/AppIcon`: dark and light 1024px app icon PNG variants used by the runtime icon manager.
 - `Sources/SweatStreaksApp/SyncEngine.swift`: sync orchestration and provider state tracking.
 - `Sources/SweatStreaksApp/NotificationEngine.swift`: once-per-day combined-streak risk notification logic.
+- `Sources/SweatStreaksApp/LaunchAtLoginManager.swift`: macOS login-item registration wrapper used by Settings.
 - `Sources/SweatStreaksApp/CurrentStreakAnchorPolicy.swift`: app-level end-of-day grace policy for current streak metrics.
 - `Sources/SweatStreaksApp/MenuBarStreakDisplay.swift`: compact status item selection and accessibility labels for configurable visible streaks.
 - `Sources/SweatStreaksCore`: domain types and streak logic.
@@ -121,6 +133,7 @@ swift test
 - `Sources/SweatStreaksProviderLocalSupport`: shared local JSONL timestamp scanning helpers.
 - `Sources/SweatStreaksProviderCodex`: Codex local session-log provider.
 - `Sources/SweatStreaksProviderClaudeCode`: Claude Code local history/project-log provider.
+- `Sources/SweatStreaksProviderCursor`: Cursor local usage provider.
 - `Tests`: core, persistence, app sync/UI, and provider-module tests.
 - `docs/architecture.md`: architecture and data flow.
 - `docs/task-status.md`: implementation progress by phase.

@@ -58,7 +58,7 @@
   - Added automatic timer refresh based on saved refresh interval.
   - Added optional daily risk notifications when combined status is not active after the configured reminder hour.
   - Added per-provider sync summaries in the popover.
-  - Added one-year calendar heatmaps for GitHub contribution squares, LeetCode activity squares, and Combined activity squares in the menu bar popover.
+  - Added calendar heatmaps for GitHub contribution squares, LeetCode activity squares, and Combined activity squares in the menu bar popover.
   - Hardened menu bar/settings windowing so the popover uses window-style presentation, the app has regular activation, and settings open in a key AppKit-backed window with focused editable SwiftUI fields.
   - Added configurable collapsed menu bar streak values for GitHub, LeetCode, and Combined.
   - Switched source markers to shared logo-style icons for GitHub, LeetCode, and Combined, including the collapsed menu bar streak label.
@@ -84,8 +84,6 @@
   - Centralized the current provider source list in core and updated sync/anchor logic to consume it.
   - Extended combined status derivation to accept explicit required sources while preserving GitHub + LeetCode behavior.
   - Validation run completed: `swift test`, `swift build`, and `swift run SweatStreaksApp` compile/launch sanity check.
-- Notes:
-  - Cursor remains future work and should be designed around normalized local activity evidence.
 
 ## Phase 8: Codex + Claude Code Local Providers
 - Status: Complete
@@ -115,3 +113,39 @@
   - Validation run completed: `swift test`, `swift build`, and `swift run SweatStreaksApp` compile/launch sanity check.
 - Notes:
   - GitHub and LeetCode tracking default to enabled to preserve behavior for existing installations.
+
+## Phase 10: Settings Menu Pass
+- Status: Complete
+- Completed:
+  - Split Codex and Claude Code into separate settings sections so each local provider matches the GitHub/LeetCode header and connection-status layout.
+  - Added persisted `Start on login` settings state.
+  - Added a testable launch-at-login wrapper around `SMAppService.mainApp` registration/unregistration.
+  - Added app-model tests for registering, unregistering, and surfacing launch-at-login failures during settings save.
+  - Increased the compact heatmap grid to a 13-week range with larger squares to reduce empty card space.
+- Notes:
+  - `Start on login` launches the main menu bar app for the current macOS user and is applied on `Save` or `Done`.
+
+## Phase 11: Compact Popover Pass
+- Status: Complete
+- Completed:
+  - Narrowed the menu bar popover frame and reduced outer spacing.
+  - Tightened the hero card icon/status-row sizing while keeping the same streak copy and source indicators.
+  - Switched the source picker to small segmented-control sizing.
+  - Reduced activity heatmap card padding, grid gaps, weekday-label width, and square size for the selected balanced compact mockup direction.
+  - Centered the heatmap source label, stats, and grid as one compact cluster to avoid excessive perceived side padding inside the card.
+- Notes:
+  - The heatmap continues to show the latest 13 weeks; this pass changes density and footprint, not the date range.
+
+## Phase 12: Cursor Local Provider
+- Status: Complete
+- Completed:
+  - Added `cursor` as a persisted activity source and current provider source.
+  - Added `SweatStreaksProviderCursor` for local Cursor AI usage tracking.
+  - Cursor activity reads timestamp/metadata evidence from agent transcripts, worker logs, chat store metadata, Cursor AI-tracking SQLite state, and Cursor global daily-stat keys.
+  - Added Cursor settings tracking toggle, connection status, status rows, heatmap tab, today overrides, menu-bar visibility control, and collapsed menu-bar display support.
+  - Extended SQLite source constraints for `activity_days`, `manual_overrides`, and `provider_states`.
+  - Added provider, persistence, sync, menu-bar, icon, registry, and combined-status tests.
+  - Validation run completed: `swift test`, `swift build`, and `swift run SweatStreaksApp` compile/launch sanity check.
+- Notes:
+  - Cursor tracking counts local Cursor AI usage evidence, including chat/agent activity and AI code-tracking state.
+  - Prompt text, chat text, edited file contents, and auth tokens are not stored or displayed.

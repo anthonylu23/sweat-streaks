@@ -3,6 +3,9 @@
 ## Immediate Validation
 - Run the app with real GitHub and LeetCode usernames.
 - Verify GitHub and LeetCode tracking toggles suppress sync while preserving saved usernames/PAT state, then resume syncing when re-enabled.
+- Verify Cursor tracking against your real local Cursor AI history and confirm chat/agent/code-assist activity matches the streak behavior you want.
+- Verify `Start on login` registers and unregisters the SwiftPM-launched app in macOS Login Items on a real user account.
+- Verify the compact popover on a real menu bar display with all providers enabled, especially segmented-control label fit and heatmap month-label spacing now that Cursor adds a sixth source.
 - Verify LeetCode's public calendar returns expected recent days for the target account.
 - Confirm macOS notification permission flow from the SwiftPM-launched app.
 
@@ -15,10 +18,10 @@
 
 ## Product Polish
 - Gather real-world feedback on the compact menu bar icon-and-number labels and adjust if they are too wide or unclear.
+- Gather real-world feedback on the narrowed popover and adjust the width if the six-source picker feels cramped.
 - Verify the selected dark/light app icon variants in a packaged `.app` once distribution packaging is introduced.
 - Add snooze controls for risk reminders.
 
 ## Optional Later
-- Add a Cursor local provider once a reliable local activity source is identified.
-- Add optional session count, token, or cost metrics for agentic tools if there is a stable official source.
+- Add optional session count, token, or cost metrics for local/agentic tools if there is a stable official source.
 - Revisit the Rust domain core only if Swift domain logic becomes complex enough to justify FFI.
