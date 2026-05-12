@@ -85,4 +85,33 @@
   - Extended combined status derivation to accept explicit required sources while preserving GitHub + LeetCode behavior.
   - Validation run completed: `swift test`, `swift build`, and `swift run SweatStreaksApp` compile/launch sanity check.
 - Notes:
-  - Local tool streaks for Codex, Claude Code, and Cursor remain future work and should be designed around normalized local activity evidence.
+  - Cursor remains future work and should be designed around normalized local activity evidence.
+
+## Phase 8: Codex + Claude Code Local Providers
+- Status: Complete
+- Completed:
+  - Added `codex` and `claude_code` activity sources.
+  - Added local JSONL scanning support shared by agentic tool providers.
+  - Added `CodexProvider` for `~/.codex/sessions` and `~/.codex/archived_sessions`.
+  - Added `ClaudeCodeProvider` for `~/.claude/history.jsonl` and `~/.claude/projects`.
+  - Added settings toggles, status rows, heatmaps, menu-bar visibility controls, and manual overrides for both providers.
+  - Updated SQLite source constraints and repository override validation for the new provider IDs.
+  - Updated Combined semantics so GitHub, LeetCode, Codex, and Claude Code are all required.
+  - Added provider, persistence, sync, menu-bar, and combined-status tests.
+  - Validation run completed: `swift test`, `swift build`, and `swift run SweatStreaksApp` compile/launch sanity check.
+- Notes:
+  - V1 tracks active days only. Local auth tokens, prompt content, token counts, and costs are not stored or displayed.
+
+## Phase 9: Provider Tracking Controls
+- Status: Complete
+- Completed:
+  - Added persisted GitHub and LeetCode activity tracking toggles to settings.
+  - Updated provider factory construction so disabled GitHub/LeetCode providers are omitted from sync without clearing saved credentials or usernames.
+  - Threaded enabled provider tracking sources into Combined derivation during app-driven sync/recompute, so disabled providers do not block Combined.
+  - Recomputed view state after saving tracking settings so Combined reflects disabled/re-enabled providers immediately.
+  - Disabled provider-specific menu bar visibility controls when tracking is off, and filtered disabled tracking sources from the rendered status item.
+  - Hid disabled tracking providers from popover status rows, heatmap source tabs, and today override menus.
+  - Added ProviderRegistry tests for remote provider tracking toggle behavior.
+  - Validation run completed: `swift test`, `swift build`, and `swift run SweatStreaksApp` compile/launch sanity check.
+- Notes:
+  - GitHub and LeetCode tracking default to enabled to preserve behavior for existing installations.
