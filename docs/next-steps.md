@@ -1,6 +1,9 @@
 # Next Steps
 
 ## Immediate Validation
+- Validate the first public `v0.1.0` zip by unzipping and launching `Sweat Streaks.app`.
+- Validate the Homebrew cask from `anthonylu23/homebrew-tap` after the release URL and checksum are final.
+- Capture public screenshots from a clean profile with placeholder account names and no personal paths or provider errors.
 - Run the app with real GitHub and LeetCode usernames.
 - Verify GitHub and LeetCode tracking toggles suppress sync while preserving saved usernames/PAT state, then resume syncing when re-enabled.
 - Verify Cursor tracking against your real local Cursor AI history and confirm chat/agent/code-assist activity matches the streak behavior you want.
@@ -11,6 +14,8 @@
 - Confirm macOS notification permission flow from the SwiftPM-launched app.
 
 ## MVP Hardening
+- Add Developer ID signing, hardened runtime, notarization, and universal macOS builds.
+- Automate release notes and Homebrew cask checksum updates after the first manual release is proven.
 - Add a richer manual override editor for arbitrary dates, custom notes, and audit review.
 - Add UI smoke tests for settings window focus/text entry, settings save, refresh, provider-state display, and override toggles.
 - Add a diagnostics view for recent sync runs and provider error history.

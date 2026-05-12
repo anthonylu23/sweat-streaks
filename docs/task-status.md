@@ -164,3 +164,18 @@
   - `swift test`
   - `swift build`
   - `swift run SweatStreaksApp` compile/launch check, then stopped after launch
+
+## Phase 14: Open Source Release Preparation
+- Status: In Progress
+- Completed:
+  - Chosen MIT license and first public distribution path.
+  - Added release packaging documentation and a macOS app zip packaging script.
+  - Added CI, contributing, security, and v0.1.0 release-note docs.
+  - Added `.claude/` to `.gitignore` and prepared tracked Claude local settings for removal from the repository index.
+  - Updated README for public install, provider setup, privacy/security, build/test, project structure, contribution, and license guidance.
+  - Documented release architecture and Homebrew distribution flow.
+- Remaining:
+  - Rename GitHub repository to `sweat-streaks`, make it public, and update local `origin`.
+  - Publish `v0.1.0` release artifact.
+  - Create/update the `anthonylu23/homebrew-tap` cask.
+  - Capture sanitized public screenshots from a clean profile.

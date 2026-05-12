@@ -1,6 +1,8 @@
 # Architecture
 
 ## Modules
+- `scripts/package-release.sh`
+  - Release helper that builds the SwiftPM executable, assembles a macOS `.app`, generates an app icon, ad-hoc signs the bundle, and zips it for GitHub Releases/Homebrew.
 - `SweatStreaksApp`
   - SwiftUI menu bar scene (`MenuBarExtra` with window-style presentation), AppKit-backed settings window, popover content, settings view, app model, provider registry, notification engine, and sync engine.
 - `SweatStreaksCore`
@@ -109,6 +111,13 @@ SweatStreaksCore
 13. App model publishes square timelines for GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined activity; the popover currently displays the latest 13 weeks.
 14. Notification engine sends at most one local risk notification per day when combined is not active after the configured reminder hour.
 
+## Distribution Flow
+1. `scripts/package-release.sh vX.Y.Z` builds `SweatStreaksApp` in release mode.
+2. The script assembles `Sweat Streaks.app` with the SwiftPM executable, SwiftPM resource bundle, generated `Info.plist`, and `.icns` icon.
+3. The unsigned app is zipped as `Sweat-Streaks-vX.Y.Z-macos-arm64.zip`.
+4. GitHub Releases host the zip, and the Homebrew cask in `anthonylu23/homebrew-tap` installs that same artifact by version and SHA-256.
+5. App-support directory and SQLite names intentionally stay `SweatStreaks` / `sweat_streaks.sqlite` so open-source repo renaming does not migrate local data.
+
 ## UI Windowing Notes
 - The menu bar extra uses `.menuBarExtraStyle(.window)` because its content contains controls and opens editable settings.
 - The popover displays compact 13-week calendar-style heatmaps for GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined activity inside a fixed-width, tightly padded menu-bar window. The heatmap card groups the source label, stats, and grid into a centered compact cluster so the small 13-week grid does not appear adrift in the full card width. Square data uses the same effective day statuses as streak metrics, including manual override effects, and month labels are suppressed at tight boundaries when adjacent labels would collide.
@@ -126,9 +135,10 @@ SweatStreaksCore
 - `AppIconManager` sets `NSApp.applicationIconImage` from bundled dark/light PNG resources at launch and when macOS appearance changes. This keeps the icon visible for SwiftPM-launched builds where there is no packaged app icon bundle.
 
 ## Remaining Architecture Work
-1. Replace the current simple manual override menu with a richer editor for date selection, notes, and audit history.
-2. Add a LeetCode fallback adapter if the public GraphQL calendar becomes unreliable.
-3. Add UI smoke tests around menu bar state, settings, and override flows.
-4. Consider extracting provider diagnostics into a dedicated view once sync history grows.
-5. Add path discovery diagnostics that show which configured local roots produced activity evidence without exposing file contents.
-6. Consider preserving session counts or token/cost metrics separately from active-day status if product needs grow.
+1. Add Developer ID signing, hardened runtime, notarization, and universal arm64/x86_64 packaging.
+2. Replace the current simple manual override menu with a richer editor for date selection, notes, and audit history.
+3. Add a LeetCode fallback adapter if the public GraphQL calendar becomes unreliable.
+4. Add UI smoke tests around menu bar state, settings, and override flows.
+5. Consider extracting provider diagnostics into a dedicated view once sync history grows.
+6. Add path discovery diagnostics that show which configured local roots produced activity evidence without exposing file contents.
+7. Consider preserving session counts or token/cost metrics separately from active-day status if product needs grow.
