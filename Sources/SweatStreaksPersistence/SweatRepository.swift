@@ -477,6 +477,7 @@ public enum SettingsKey: String {
     case refreshIntervalMinutes
     case notificationsEnabled
     case reminderHour
+    case startOnLogin
     case lastRiskNotificationDay
     case trackGitHubProvider
     case trackLeetCodeProvider
@@ -484,8 +485,10 @@ public enum SettingsKey: String {
     case showLeetCodeStreakInMenuBar
     case trackCodexProvider
     case trackClaudeCodeProvider
+    case trackCursorProvider
     case showCodexStreakInMenuBar
     case showClaudeCodeStreakInMenuBar
+    case showCursorStreakInMenuBar
     case showCombinedStreakInMenuBar
 }
 

@@ -8,9 +8,12 @@ final class SweatRepositoryTests: XCTestCase {
         let repository = SweatRepository(dbQueue: manager.dbQueue)
 
         try repository.setSetting(key: "refreshIntervalMinutes", value: "60")
+        try repository.setSetting(key: SettingsKey.startOnLogin.rawValue, value: "true")
         let value = try repository.getSetting(key: "refreshIntervalMinutes")
+        let startOnLogin = try repository.getSetting(key: SettingsKey.startOnLogin.rawValue)
 
         XCTAssertEqual(value, "60")
+        XCTAssertEqual(startOnLogin, "true")
     }
 
     func testDatabaseFileUsesOwnerOnlyPermissions() throws {
@@ -48,7 +51,7 @@ final class SweatRepositoryTests: XCTestCase {
         XCTAssertEqual(fetched?.status, .active)
     }
 
-    func testAgenticToolSourcesPersistAcrossProviderTables() throws {
+    func testLocalToolSourcesPersistAcrossProviderTables() throws {
         let manager = try DatabaseManager(inMemory: true)
         let repository = SweatRepository(dbQueue: manager.dbQueue)
         let day = LocalDay(year: 2026, month: 5, day: 12)
@@ -58,14 +61,18 @@ final class SweatRepositoryTests: XCTestCase {
             ActivityDayRecord(day: day, source: .codex, status: .active, updatedAt: now, provenance: .api)
         )
         try repository.setManualStatus(day: day, source: .claudeCode, status: .inactive, note: "No Claude work")
+        try repository.upsertActivityDayRecord(
+            ActivityDayRecord(day: day, source: .cursor, status: .active, updatedAt: now, provenance: .api)
+        )
         try repository.upsertProviderSyncState(
-            ProviderSyncState(source: .codex, lastSuccessAt: now, cooldownUntil: nil, lastError: nil, isStale: false),
+            ProviderSyncState(source: .cursor, lastSuccessAt: now, cooldownUntil: nil, lastError: nil, isStale: false),
             updatedAt: now
         )
 
         XCTAssertEqual(try repository.fetchActivityDayRecord(day: day, source: .codex)?.status, .active)
         XCTAssertEqual(try repository.fetchManualOverride(day: day, source: .claudeCode)?.status, .inactive)
-        XCTAssertEqual(try repository.fetchProviderSyncState(source: .codex)?.lastSuccessAt, now)
+        XCTAssertEqual(try repository.fetchActivityDayRecord(day: day, source: .cursor)?.status, .active)
+        XCTAssertEqual(try repository.fetchProviderSyncState(source: .cursor)?.lastSuccessAt, now)
     }
 
     func testActivityDelete() throws {

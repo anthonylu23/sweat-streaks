@@ -53,7 +53,7 @@ public final class DatabaseManager {
                   PRIMARY KEY(date_local, source),
                   CHECK (date_local GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
                   CHECK (status IN ('active','inactive','unknown')),
-                  CHECK (source IN ('github','leetcode','codex','claude_code','combined')),
+                  CHECK (source IN ('github','leetcode','codex','claude_code','cursor','combined')),
                   CHECK (provenance IN ('api','fallback','derived','manual'))
                 );
             """)
@@ -68,7 +68,7 @@ public final class DatabaseManager {
                   updated_at DATETIME NOT NULL,
                   PRIMARY KEY(date_local, source),
                   CHECK (date_local GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
-                  CHECK (source IN ('github','leetcode','codex','claude_code')),
+                  CHECK (source IN ('github','leetcode','codex','claude_code','cursor')),
                   CHECK (status IN ('active','inactive'))
                 );
             """)
@@ -112,7 +112,7 @@ public final class DatabaseManager {
                   last_error TEXT,
                   is_stale INTEGER NOT NULL DEFAULT 0,
                   updated_at DATETIME NOT NULL,
-                  CHECK (source IN ('github','leetcode','codex','claude_code','combined')),
+                  CHECK (source IN ('github','leetcode','codex','claude_code','cursor','combined')),
                   CHECK (is_stale IN (0, 1))
                 );
             """)
@@ -129,7 +129,7 @@ public final class DatabaseManager {
                   PRIMARY KEY(date_local, source),
                   CHECK (date_local GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
                   CHECK (status IN ('active','inactive','unknown')),
-                  CHECK (source IN ('github','leetcode','codex','claude_code','combined')),
+                  CHECK (source IN ('github','leetcode','codex','claude_code','cursor','combined')),
                   CHECK (provenance IN ('api','fallback','derived','manual'))
                 );
             """)
@@ -154,7 +154,7 @@ public final class DatabaseManager {
                   updated_at DATETIME NOT NULL,
                   PRIMARY KEY(date_local, source),
                   CHECK (date_local GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
-                  CHECK (source IN ('github','leetcode','codex','claude_code')),
+                  CHECK (source IN ('github','leetcode','codex','claude_code','cursor')),
                   CHECK (status IN ('active','inactive'))
                 );
             """)
@@ -173,7 +173,74 @@ public final class DatabaseManager {
                   last_error TEXT,
                   is_stale INTEGER NOT NULL DEFAULT 0,
                   updated_at DATETIME NOT NULL,
-                  CHECK (source IN ('github','leetcode','codex','claude_code','combined')),
+                  CHECK (source IN ('github','leetcode','codex','claude_code','cursor','combined')),
+                  CHECK (is_stale IN (0, 1))
+                );
+            """)
+            try db.execute(sql: """
+                INSERT INTO provider_states_new (source, last_success_at, cooldown_until, last_error, is_stale, updated_at)
+                SELECT source, last_success_at, cooldown_until, last_error, is_stale, updated_at FROM provider_states;
+            """)
+            try db.execute(sql: "DROP TABLE provider_states;")
+            try db.execute(sql: "ALTER TABLE provider_states_new RENAME TO provider_states;")
+        }
+
+        migrator.registerMigration("extendCursorSource") { db in
+            try db.execute(sql: """
+                CREATE TABLE activity_days_new (
+                  date_local TEXT NOT NULL,
+                  source TEXT NOT NULL,
+                  status TEXT NOT NULL,
+                  provenance TEXT NOT NULL,
+                  updated_at DATETIME NOT NULL,
+                  PRIMARY KEY(date_local, source),
+                  CHECK (date_local GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+                  CHECK (status IN ('active','inactive','unknown')),
+                  CHECK (source IN ('github','leetcode','codex','claude_code','cursor','combined')),
+                  CHECK (provenance IN ('api','fallback','derived','manual'))
+                );
+            """)
+            try db.execute(sql: """
+                INSERT INTO activity_days_new (date_local, source, status, provenance, updated_at)
+                SELECT date_local, source, status, provenance, updated_at FROM activity_days;
+            """)
+            try db.execute(sql: "DROP TABLE activity_days;")
+            try db.execute(sql: "ALTER TABLE activity_days_new RENAME TO activity_days;")
+            try db.execute(sql: """
+                CREATE INDEX IF NOT EXISTS idx_activity_days_source_date
+                ON activity_days(source, date_local);
+            """)
+
+            try db.execute(sql: """
+                CREATE TABLE manual_overrides_new (
+                  date_local TEXT NOT NULL,
+                  source TEXT NOT NULL,
+                  status TEXT NOT NULL,
+                  note TEXT,
+                  created_at DATETIME NOT NULL,
+                  updated_at DATETIME NOT NULL,
+                  PRIMARY KEY(date_local, source),
+                  CHECK (date_local GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+                  CHECK (source IN ('github','leetcode','codex','claude_code','cursor')),
+                  CHECK (status IN ('active','inactive'))
+                );
+            """)
+            try db.execute(sql: """
+                INSERT INTO manual_overrides_new (date_local, source, status, note, created_at, updated_at)
+                SELECT date_local, source, status, note, created_at, updated_at FROM manual_overrides;
+            """)
+            try db.execute(sql: "DROP TABLE manual_overrides;")
+            try db.execute(sql: "ALTER TABLE manual_overrides_new RENAME TO manual_overrides;")
+
+            try db.execute(sql: """
+                CREATE TABLE provider_states_new (
+                  source TEXT PRIMARY KEY,
+                  last_success_at DATETIME,
+                  cooldown_until DATETIME,
+                  last_error TEXT,
+                  is_stale INTEGER NOT NULL DEFAULT 0,
+                  updated_at DATETIME NOT NULL,
+                  CHECK (source IN ('github','leetcode','codex','claude_code','cursor','combined')),
                   CHECK (is_stale IN (0, 1))
                 );
             """)

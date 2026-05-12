@@ -5,9 +5,10 @@ public enum ActivitySource: String, Codable, CaseIterable, Sendable {
     case leetcode
     case codex
     case claudeCode = "claude_code"
+    case cursor
     case combined
 
-    public static let currentProviderSources: [ActivitySource] = [.github, .leetcode, .codex, .claudeCode]
+    public static let currentProviderSources: [ActivitySource] = [.github, .leetcode, .codex, .claudeCode, .cursor]
     public static let combinedRequiredSources: [ActivitySource] = currentProviderSources
 
     public var displayName: String {
@@ -16,6 +17,7 @@ public enum ActivitySource: String, Codable, CaseIterable, Sendable {
         case .leetcode: return "LeetCode"
         case .codex: return "Codex"
         case .claudeCode: return "Claude Code"
+        case .cursor: return "Cursor"
         case .combined: return "Combined"
         }
     }

@@ -66,7 +66,8 @@ final class LocalDayTests: XCTestCase {
                 .github: .active,
                 .leetcode: .active,
                 .codex: .active,
-                .claudeCode: .active
+                .claudeCode: .active,
+                .cursor: .active
             ]),
             .active
         )
@@ -75,7 +76,8 @@ final class LocalDayTests: XCTestCase {
                 .github: .active,
                 .leetcode: .active,
                 .codex: .unknown,
-                .claudeCode: .active
+                .claudeCode: .active,
+                .cursor: .active
             ]),
             .unknown
         )
@@ -84,7 +86,8 @@ final class LocalDayTests: XCTestCase {
                 .github: .active,
                 .leetcode: .active,
                 .codex: .inactive,
-                .claudeCode: .active
+                .claudeCode: .active,
+                .cursor: .active
             ]),
             .inactive
         )

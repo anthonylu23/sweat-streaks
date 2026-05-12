@@ -15,6 +15,7 @@ let package = Package(
         .library(name: "SweatStreaksProviderLocalSupport", targets: ["SweatStreaksProviderLocalSupport"]),
         .library(name: "SweatStreaksProviderCodex", targets: ["SweatStreaksProviderCodex"]),
         .library(name: "SweatStreaksProviderClaudeCode", targets: ["SweatStreaksProviderClaudeCode"]),
+        .library(name: "SweatStreaksProviderCursor", targets: ["SweatStreaksProviderCursor"]),
         .executable(name: "SweatStreaksApp", targets: ["SweatStreaksApp"])
     ],
     dependencies: [
@@ -71,6 +72,14 @@ let package = Package(
                 "SweatStreaksProviderLocalSupport"
             ]
         ),
+        .target(
+            name: "SweatStreaksProviderCursor",
+            dependencies: [
+                "SweatStreaksCore",
+                "SweatStreaksProviderLocalSupport",
+                .product(name: "GRDB", package: "GRDB.swift")
+            ]
+        ),
         .executableTarget(
             name: "SweatStreaksApp",
             dependencies: [
@@ -78,6 +87,7 @@ let package = Package(
                 "SweatStreaksPersistence",
                 "SweatStreaksProviderClaudeCode",
                 "SweatStreaksProviderCodex",
+                "SweatStreaksProviderCursor",
                 "SweatStreaksProviderGitHub",
                 "SweatStreaksProviderLeetCode"
             ],
@@ -134,6 +144,14 @@ let package = Package(
                 "SweatStreaksCore",
                 "SweatStreaksProviderClaudeCode",
                 "SweatStreaksProviderLocalSupport"
+            ]
+        ),
+        .testTarget(
+            name: "SweatStreaksProviderCursorTests",
+            dependencies: [
+                "SweatStreaksCore",
+                "SweatStreaksProviderCursor",
+                .product(name: "GRDB", package: "GRDB.swift")
             ]
         )
     ]
