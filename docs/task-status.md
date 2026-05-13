@@ -280,6 +280,7 @@
   - Added Homebrew tap checkout, cask audit, commit, and push steps using the required `HOMEBREW_TAP_TOKEN` repository secret.
   - Configured `HOMEBREW_TAP_TOKEN` for the GitHub repository using the authenticated GitHub CLI token.
   - Isolated the AppKit-backed `BrandIcon` image cache and smoke tests to the main actor so GitHub's Xcode 16.4 Swift compiler accepts the build.
+  - Updated the Homebrew audit step to tap the checked-out cask repository and audit by cask token, because current Homebrew disables path-based `brew audit`.
   - Documented the automated release flow, manual fallback, and remaining first-run validation.
 - Validation:
   - `bash -n scripts/next-release-version.sh scripts/update-homebrew-cask.sh`
@@ -297,3 +298,4 @@
   - `swift build`
   - `swift test --filter BrandIconSmokeTest`
   - `swift test`
+  - GitHub Actions run `25773710898` passed Swift build/test/release packaging, created GitHub Release `v0.1.2`, and verified `HOMEBREW_TAP_TOKEN`; it failed before tap commit because `brew audit [path ...]` is disabled.

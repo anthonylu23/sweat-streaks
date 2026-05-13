@@ -126,7 +126,9 @@ jobs:
             homebrew-tap/Casks/sweat-streaks.rb
       - name: Audit Homebrew cask
         working-directory: homebrew-tap
-        run: brew audit --cask --strict Casks/sweat-streaks.rb
+        run: |
+          brew tap anthonylu23/tap "$PWD"
+          brew audit --cask --strict anthonylu23/tap/sweat-streaks
       - name: Commit Homebrew cask update
         working-directory: homebrew-tap
         run: |
