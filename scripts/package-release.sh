@@ -19,13 +19,13 @@ EXECUTABLE_NAME="SweatStreaksApp"
 BUNDLE_IDENTIFIER="com.anthonylu23.SweatStreaks"
 RESOURCE_BUNDLE="sweat-streaks_SweatStreaksApp.bundle"
 DIST_DIR="$ROOT_DIR/dist/$VERSION"
-BUILD_DIR="$ROOT_DIR/.build/arm64-apple-macosx/release"
+RELEASE_ARCH="${SWEAT_STREAKS_RELEASE_ARCH:-$(uname -m)}"
 APP_DIR="$DIST_DIR/$APP_NAME.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 ICONSET_DIR="$DIST_DIR/AppIcon.iconset"
-ZIP_NAME="Sweat-Streaks-${VERSION}-macos-arm64.zip"
+ZIP_NAME="Sweat-Streaks-${VERSION}-macos-${RELEASE_ARCH}.zip"
 ZIP_PATH="$DIST_DIR/$ZIP_NAME"
 SHA_PATH="$ZIP_PATH.sha256"
 
@@ -33,11 +33,11 @@ rm -rf "$DIST_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$ICONSET_DIR"
 
 swift build -c release --product "$EXECUTABLE_NAME"
+BUILD_DIR="$(swift build -c release --show-bin-path)"
 
 cp "$BUILD_DIR/$EXECUTABLE_NAME" "$MACOS_DIR/$EXECUTABLE_NAME"
 
 if [[ -d "$BUILD_DIR/$RESOURCE_BUNDLE" ]]; then
-  cp -R "$BUILD_DIR/$RESOURCE_BUNDLE" "$APP_DIR/$RESOURCE_BUNDLE"
   cp -R "$BUILD_DIR/$RESOURCE_BUNDLE" "$RESOURCES_DIR/$RESOURCE_BUNDLE"
 else
   echo "Missing SwiftPM resource bundle: $BUILD_DIR/$RESOURCE_BUNDLE" >&2

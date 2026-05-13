@@ -17,3 +17,9 @@ jobs:
         run: swift build
       - name: Test
         run: swift test
+      - name: Release build
+        run: swift build -c release --product SweatStreaksApp
+      - name: Package smoke test
+        run: |
+          scripts/package-release.sh v0.0.0-ci
+          unzip -t dist/v0.0.0-ci/Sweat-Streaks-v0.0.0-ci-macos-$(uname -m).zip
