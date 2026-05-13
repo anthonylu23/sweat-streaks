@@ -22,11 +22,16 @@ The packaging script writes:
 - `dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip`
 - `dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip.sha256`
 
-The app is not Developer ID signed or notarized. Users may need to approve the first launch in macOS Privacy & Security.
+The packaging script ad-hoc signs the completed `.app` bundle after writing
+`Info.plist`, resources, and icons. This seals the bundle resources so macOS
+does not reject the app as damaged because of an invalid bundle signature.
+
+The app is not Developer ID signed or notarized. Users may need to approve the first launch in macOS Privacy & Security or install the cask with Homebrew quarantine disabled for personal/local builds.
 
 ## Validate the Artifact
 ```bash
 plutil -lint "dist/v0.1.0/Sweat Streaks.app/Contents/Info.plist"
+codesign --verify --deep --strict --verbose=2 "dist/v0.1.0/Sweat Streaks.app"
 unzip -t "dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip"
 script/build_and_run.sh --verify
 ```

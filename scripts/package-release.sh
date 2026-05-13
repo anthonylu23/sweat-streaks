@@ -99,6 +99,8 @@ PLIST
 
 plutil -lint "$CONTENTS_DIR/Info.plist"
 xattr -cr "$APP_DIR"
+codesign --force --deep --sign - "$APP_DIR"
+codesign --verify --deep --strict --verbose=2 "$APP_DIR"
 
 (
   cd "$DIST_DIR"

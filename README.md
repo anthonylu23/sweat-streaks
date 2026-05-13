@@ -108,6 +108,7 @@ See `docs/releasing.md` for the release checklist and Homebrew cask update flow.
 - `No Cursor AI activity found`: Cursor tracking is enabled but no supported local AI usage evidence was found.
 - `GitHub data is stale`: no successful sync in more than 24 hours.
 - If unsigned builds are blocked by Gatekeeper, approve the app in System Settings -> Privacy & Security.
+- If a Homebrew install says the app is damaged, verify the bundle signature with `codesign --verify --deep --strict --verbose=2 /Applications/Sweat\ Streaks.app`. A `code has no resources but signature indicates they must be present` error means the release zip was built without signing the completed app bundle.
 
 ## Project Structure
 - `Package.swift`: SwiftPM package definition and targets.

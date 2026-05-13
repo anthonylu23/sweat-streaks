@@ -203,3 +203,22 @@
   - `unzip -t dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-arm64.zip`
   - `script/build_and_run.sh --verify`
   - `swift run SweatStreaksApp` smoke check
+
+## Phase 16: Homebrew Gatekeeper Fix
+- Status: Complete for local packaging fix
+- Completed:
+  - Diagnosed the installed Homebrew cask app as failing Gatekeeper because the final `.app` bundle was never signed after resources and `Info.plist` were added.
+  - Updated release packaging to ad-hoc sign and verify the completed app bundle before creating the zip.
+  - Updated release docs to require bundle signature validation before publishing.
+  - Rebuilt the local v0.1.0 release zip and replaced the installed `/Applications/Sweat Streaks.app` bundle with the fixed build.
+- Validation:
+  - `swift test`
+  - `swift build`
+  - `scripts/package-release.sh v0.1.0`
+  - `unzip -t dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-arm64.zip`
+  - `codesign --verify --deep --strict --verbose=2 /Applications/Sweat Streaks.app`
+  - `script/build_and_run.sh --verify`
+  - `swift run SweatStreaksApp` compile/smoke check, then stopped after launch
+- Notes:
+  - The public v0.1.0 Homebrew artifact still needs to be rebuilt and republished with the fixed packaging script, then the cask checksum needs to be updated.
+  - Developer ID signing and notarization remain the long-term distribution fix.
