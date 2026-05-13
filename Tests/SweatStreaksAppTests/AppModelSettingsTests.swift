@@ -1,5 +1,6 @@
 import XCTest
 @testable import SweatStreaksApp
+@testable import SweatStreaksCore
 @testable import SweatStreaksPersistence
 
 @MainActor
@@ -65,6 +66,19 @@ final class AppModelSettingsTests: XCTestCase {
         XCTAssertEqual(fixture.model.claudeCodePath, ProviderRegistry.defaultClaudeCodePath)
         XCTAssertEqual(fixture.model.cursorPath, ProviderRegistry.defaultCursorPath)
         XCTAssertEqual(fixture.model.cursorApplicationSupportPath, ProviderRegistry.defaultCursorApplicationSupportPath)
+    }
+
+    func testEmptyStorageStartsWithUnknownActivityInsteadOfSampleData() throws {
+        let fixture = try makeFixture(launchAtLoginManager: RecordingLaunchAtLoginManager(isEnabled: false))
+
+        XCTAssertEqual(fixture.model.todayStatuses[.github], .unknown)
+        XCTAssertEqual(fixture.model.todayStatuses[.leetcode], .unknown)
+        XCTAssertEqual(fixture.model.todayStatuses[.codex], .unknown)
+        XCTAssertEqual(fixture.model.todayStatuses[.claudeCode], .unknown)
+        XCTAssertEqual(fixture.model.todayStatuses[.cursor], .unknown)
+        XCTAssertEqual(fixture.model.todayStatuses[.combined], .unknown)
+        XCTAssertEqual(fixture.model.combinedCurrentStreak, 0)
+        XCTAssertEqual(fixture.model.lastSyncWarning, "No provider activity data yet. Configure a provider or refresh sync.")
     }
 
     private func makeFixture(

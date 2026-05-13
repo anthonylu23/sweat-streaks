@@ -43,11 +43,15 @@ public enum LocalActivityLogScanner {
         var activeDays: Set<LocalDay> = []
 
         for file in files {
-            guard let contents = try? String(contentsOf: file, encoding: .utf8) else {
+            guard let handle = try? FileHandle(forReadingFrom: file) else {
                 continue
             }
 
-            for line in contents.split(separator: "\n", omittingEmptySubsequences: true) {
+            defer {
+                try? handle.close()
+            }
+
+            for line in jsonLines(from: handle) {
                 guard let timestamp = parseTimestamp(fromJSONLine: String(line)) else {
                     continue
                 }
@@ -110,5 +114,38 @@ public enum LocalActivityLogScanner {
 
     private static func localDayRange(for range: ClosedRange<Date>, in timeZone: TimeZone) -> ClosedRange<LocalDay> {
         LocalDay.from(date: range.lowerBound, in: timeZone)...LocalDay.from(date: range.upperBound, in: timeZone)
+    }
+
+    private static func jsonLines(from handle: FileHandle) -> AnySequence<String> {
+        AnySequence {
+            var buffer = Data()
+            var isEOF = false
+
+            return AnyIterator {
+                while true {
+                    if let newlineIndex = buffer.firstIndex(of: 0x0A) {
+                        let lineData = buffer[..<newlineIndex]
+                        buffer.removeSubrange(...newlineIndex)
+                        if lineData.isEmpty {
+                            continue
+                        }
+                        return String(data: lineData, encoding: .utf8)
+                    }
+
+                    if isEOF {
+                        guard !buffer.isEmpty else { return nil }
+                        defer { buffer.removeAll(keepingCapacity: false) }
+                        return String(data: buffer, encoding: .utf8)
+                    }
+
+                    let chunk = (try? handle.read(upToCount: 64 * 1024)) ?? Data()
+                    if chunk.isEmpty {
+                        isEOF = true
+                    } else {
+                        buffer.append(chunk)
+                    }
+                }
+            }
+        }
     }
 }

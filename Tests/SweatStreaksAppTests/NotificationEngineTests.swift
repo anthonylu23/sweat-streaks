@@ -38,6 +38,15 @@ final class NotificationEngineTests: XCTestCase {
         XCTAssertEqual(sends, 0)
     }
 
+    func testUserNotificationSchedulerNoOpsOutsideAppBundle() async throws {
+        let scheduler = UserNotificationScheduler(isRunningFromAppBundle: { false })
+
+        let authorized = try await scheduler.requestAuthorizationIfNeeded()
+        try await scheduler.sendRiskNotification(title: "Ignored", body: "Ignored")
+
+        XCTAssertFalse(authorized)
+    }
+
     private static func date(year: Int, month: Int, day: Int, hour: Int) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current

@@ -382,7 +382,7 @@ final class AppModel: ObservableObject {
 
             if providerDays.values.allSatisfy(\.isEmpty) {
                 githubContributionDiagnostic = nil
-                providerDays = AppModel.seedDayMap(in: .current)
+                providerDays = AppModel.emptyDayMap(in: .current)
                 let effectiveDays = effectiveDayMaps(
                     providerDays: providerDays,
                     overrides: overrides,
@@ -407,7 +407,7 @@ final class AppModel: ObservableObject {
                 )
 
                 if lastSyncAt == nil {
-                    lastSyncWarning = "Using local fallback data until provider sync completes."
+                    lastSyncWarning = "No provider activity data yet. Configure a provider or refresh sync."
                 }
 
                 return
@@ -695,7 +695,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private static func seedDayMap(in timeZone: TimeZone) -> [ActivitySource: [LocalDay: DayStatus]] {
+    private static func emptyDayMap(in timeZone: TimeZone) -> [ActivitySource: [LocalDay: DayStatus]] {
         var providerDays = Dictionary(
             uniqueKeysWithValues: ActivitySource.currentProviderSources.map { ($0, [LocalDay: DayStatus]()) }
         )
@@ -708,27 +708,10 @@ final class AppModel: ObservableObject {
             let day = LocalDay.from(date: date, in: timeZone)
 
             for source in ActivitySource.currentProviderSources {
-                providerDays[source]?[day] = seedStatus(source: source, offset: offset)
+                providerDays[source]?[day] = .unknown
             }
         }
 
         return providerDays
-    }
-
-    private static func seedStatus(source: ActivitySource, offset: Int) -> DayStatus {
-        switch source {
-        case .github:
-            return offset % 5 == 0 ? .inactive : .active
-        case .leetcode:
-            return offset % 7 == 0 ? .unknown : .active
-        case .codex:
-            return offset % 6 == 0 ? .inactive : .active
-        case .claudeCode:
-            return offset % 8 == 0 ? .unknown : .active
-        case .cursor:
-            return offset % 9 == 0 ? .inactive : .active
-        case .combined:
-            return .unknown
-        }
     }
 }

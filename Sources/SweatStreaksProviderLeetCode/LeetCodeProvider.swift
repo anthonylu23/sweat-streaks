@@ -108,7 +108,10 @@ public struct LeetCodeProvider: ActivityProvider {
         return try Self.parseSubmissionCalendar(calendar)
     }
 
-    public static func parseSubmissionCalendar(_ calendar: String, timeZone: TimeZone = .current) throws -> Set<LocalDay> {
+    public static func parseSubmissionCalendar(
+        _ calendar: String,
+        timeZone: TimeZone = TimeZone(secondsFromGMT: 0)!
+    ) throws -> Set<LocalDay> {
         guard let data = calendar.data(using: .utf8) else {
             throw ProviderError.decoding
         }

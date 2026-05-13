@@ -277,9 +277,11 @@ final class DefaultSyncService: SyncService {
 
         let startDay = LocalDay.from(date: startDate, in: .current)
         let lower = startDay.date(in: .current) ?? startDate
-        let upper = endDay.date(in: .current) ?? endDate
+        let upperDayStart = endDay.date(in: .current) ?? endDate
+        let nextDayStart = calendar.date(byAdding: .day, value: 1, to: upperDayStart)
+            ?? upperDayStart.addingTimeInterval(24 * 60 * 60)
 
-        return lower...upper.addingTimeInterval(60 * 60 * 23)
+        return lower...nextDayStart.addingTimeInterval(-0.001)
     }
 
     private func buildRecords(from response: ProviderFetchResult) -> [ActivityDayRecord] {

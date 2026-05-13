@@ -38,6 +38,19 @@ final class LeetCodeProviderTests: XCTestCase {
         XCTAssertEqual(result.days[LocalDay(year: 2026, month: 2, day: 19)], .inactive)
     }
 
+    func testSubmissionCalendarTreatsEpochKeysAsUTCDayBuckets() throws {
+        let originalTimeZone = NSTimeZone.default
+        NSTimeZone.default = TimeZone(identifier: "America/New_York")!
+        addTeardownBlock {
+            NSTimeZone.default = originalTimeZone
+        }
+
+        let activeEpoch = Self.epochUTC(year: 2026, month: 5, day: 12)
+        let days = try LeetCodeProvider.parseSubmissionCalendar("{\"\(activeEpoch)\": 1}")
+
+        XCTAssertEqual(days, [LocalDay(year: 2026, month: 5, day: 12)])
+    }
+
     func testRateLimitResponseThrowsRateLimitedError() async {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let client = LeetCodeStubHTTPClient { _ in
@@ -123,6 +136,12 @@ final class LeetCodeProviderTests: XCTestCase {
 
     private static func epoch(year: Int, month: Int, day: Int) -> Int {
         Int(date(year: year, month: month, day: day).timeIntervalSince1970)
+    }
+
+    private static func epochUTC(year: Int, month: Int, day: Int) -> Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return Int(calendar.date(from: DateComponents(timeZone: calendar.timeZone, year: year, month: month, day: day))!.timeIntervalSince1970)
     }
 
     private static func date(year: Int, month: Int, day: Int) -> Date {

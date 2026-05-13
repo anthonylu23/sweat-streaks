@@ -9,7 +9,15 @@ protocol NotificationScheduling: Sendable {
 }
 
 struct UserNotificationScheduler: NotificationScheduling {
+    private let isRunningFromAppBundle: @Sendable () -> Bool
+
+    init(isRunningFromAppBundle: @escaping @Sendable () -> Bool = UserNotificationScheduler.defaultIsRunningFromAppBundle) {
+        self.isRunningFromAppBundle = isRunningFromAppBundle
+    }
+
     func requestAuthorizationIfNeeded() async throws -> Bool {
+        guard isRunningFromAppBundle() else { return false }
+
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         switch settings.authorizationStatus {
@@ -25,6 +33,8 @@ struct UserNotificationScheduler: NotificationScheduling {
     }
 
     func sendRiskNotification(title: String, body: String) async throws {
+        guard isRunningFromAppBundle() else { return }
+
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -36,6 +46,10 @@ struct UserNotificationScheduler: NotificationScheduling {
             trigger: nil
         )
         try await UNUserNotificationCenter.current().add(request)
+    }
+
+    private static func defaultIsRunningFromAppBundle() -> Bool {
+        Bundle.main.bundleURL.pathExtension == "app"
     }
 }
 

@@ -474,6 +474,57 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertNil(tomorrowCombined)
     }
 
+    func testFetchRangeIncludesLateNightLocalActivity() async throws {
+        let manager = try DatabaseManager(inMemory: true)
+        let repository = SweatRepository(dbQueue: manager.dbQueue)
+
+        let calendar = Calendar.current
+        let today = LocalDay(year: 2026, month: 5, day: 12)
+        let lateNightActivity = calendar.date(
+            from: DateComponents(
+                timeZone: calendar.timeZone,
+                year: today.year,
+                month: today.month,
+                day: today.day,
+                hour: 23,
+                minute: 30
+            )
+        )!
+        let noon = calendar.date(
+            from: DateComponents(
+                timeZone: calendar.timeZone,
+                year: today.year,
+                month: today.month,
+                day: today.day,
+                hour: 12
+            )
+        )!
+
+        let provider = RangeAwareProvider(source: .github) { range in
+            ProviderFetchResult(
+                source: .github,
+                days: [today: range.contains(lateNightActivity) ? .active : .inactive],
+                fetchedRange: range,
+                rateLimitedUntil: nil,
+                authError: false,
+                warning: nil
+            )
+        }
+
+        let service = DefaultSyncService(
+            repository: repository,
+            clock: FixedClock(now: noon),
+            providerFactories: [.github: { provider }],
+            sleepFunction: { _ in },
+            jitterFunction: { _ in 0 }
+        )
+
+        await service.refreshNow(trigger: .manual)
+
+        let stored = try repository.fetchActivityDayRecord(day: today, source: .github)
+        XCTAssertEqual(stored?.status, .active)
+    }
+
     private func fetchedRange(for day: LocalDay) -> ClosedRange<Date> {
         let start = day.date(in: .current)!
         return start...start.addingTimeInterval(23 * 60 * 60)
@@ -528,5 +579,14 @@ private struct ScriptedProvider: ActivityProvider {
 
     func fetchActivityDays(range _: ClosedRange<Date>) async throws -> ProviderFetchResult {
         try await script.next()
+    }
+}
+
+private struct RangeAwareProvider: ActivityProvider {
+    let source: ActivitySource
+    let makeResult: @Sendable (ClosedRange<Date>) -> ProviderFetchResult
+
+    func fetchActivityDays(range: ClosedRange<Date>) async throws -> ProviderFetchResult {
+        makeResult(range)
     }
 }
