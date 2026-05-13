@@ -299,3 +299,18 @@
   - `swift test --filter BrandIconSmokeTest`
   - `swift test`
   - GitHub Actions run `25773710898` passed Swift build/test/release packaging, created GitHub Release `v0.1.2`, and verified `HOMEBREW_TAP_TOKEN`; it failed before tap commit because `brew audit [path ...]` is disabled.
+
+## Phase 21: Public Beta Polish
+- Status: In Progress
+- Completed:
+  - Chose a soft-beta exposure path instead of a full launch.
+  - Added public README screenshots for the settings/providers surface and menu bar popover activity views.
+  - Updated current README install/build examples to avoid stale release artifact names.
+  - Refreshed next-step docs around public beta validation, screenshots, and posting order.
+  - Added GitHub repository topics for soft-beta discoverability.
+  - Fresh-installed the v0.1.3 Homebrew cask, verified bundle signature, confirmed `LSUIElement=true`, launched the installed app, and quit it cleanly.
+  - Confirmed GitHub Release and Homebrew cask both point at v0.1.3.
+  - Added reusable soft-beta announcement copy.
+- Remaining:
+  - Review screenshot contents before broad posting and replace any image that exposes unwanted personal account details.
+  - Post to personal networks and small macOS/side-project communities before broader launch channels.

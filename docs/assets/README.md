@@ -1,7 +1,10 @@
 # Screenshots
 
-Public screenshots should be captured from a clean profile with placeholder usernames and default local-provider paths. Do not commit screenshots that show personal account names, local filesystem paths, streak history, tokens, or private provider errors.
+Public screenshots should avoid sensitive data. Personal account names are acceptable only when intentionally chosen for public posting; do not commit screenshots that show tokens, private provider errors, prompt text, chat text, edited file contents, or sensitive local paths.
 
-Planned public screenshots:
-- Menu bar popover with sample provider states.
-- Settings window with placeholder account values.
+Current public screenshots:
+- `popover-github.png`: menu bar popover with GitHub activity selected.
+- `popover-codex.png`: menu bar popover with Codex activity selected.
+- `settings-providers.png`: settings window showing provider setup and local-tool controls.
+
+Before posting screenshots broadly, verify they do not show tokens, private provider errors, prompt text, chat text, or edited file contents.

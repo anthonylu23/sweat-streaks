@@ -1,10 +1,16 @@
 # Next Steps
 
+## Public Beta Polish
+- Review committed public screenshots before posting broadly and replace any screenshot that exposes unwanted personal account details you do not want public.
+- Post a soft-beta announcement to personal networks and small macOS/side-project communities, with clear unsigned-build install expectations.
+- Defer Show HN/Product Hunt until at least one fresh install path is verified and early feedback confirms the setup flow is understandable.
+
+## Completed Public Beta Validation
+- Fresh-installed the Homebrew cask at v0.1.3, verified bundle signature, confirmed `LSUIElement=true`, launched the installed app, and quit it cleanly.
+- Confirmed the GitHub repository topics are present: `macos`, `swift`, `menubar`, `streaks`, `local-first`, `github`, `leetcode`, `codex`, `cursor`, `claude-code`.
+- Confirmed the latest GitHub Release and Homebrew cask both point at v0.1.3.
+
 ## Immediate Validation
-- Verify the first automated `main` release publishes both the GitHub Release and Homebrew cask update after `HOMEBREW_TAP_TOKEN` configuration.
-- Verify a fresh Homebrew install of v0.1.1 no longer reports `code has no resources but signature indicates they must be present` from `codesign --verify --deep --strict`.
-- Verify a fresh Homebrew install of v0.1.1 runs as menu-bar-only without a Dock icon.
-- Capture public screenshots from a clean profile with placeholder account names and no personal paths or provider errors.
 - Run the app with real GitHub and LeetCode usernames.
 - Verify GitHub and LeetCode tracking toggles suppress sync while preserving saved usernames/PAT state, then resume syncing when re-enabled.
 - Verify Cursor tracking against your real local Cursor AI history and confirm chat/agent/code-assist activity matches the streak behavior you want.

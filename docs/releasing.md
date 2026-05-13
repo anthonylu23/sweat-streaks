@@ -28,16 +28,17 @@ commit instead of creating another patch version.
 
 ## Build the Release Zip
 ```bash
+VERSION=vX.Y.Z
 swift test
 swift build
 swift build -c release --product SweatStreaksApp
-scripts/package-release.sh v0.1.0
+scripts/package-release.sh "$VERSION"
 ```
 
 The packaging script writes:
-- `dist/v0.1.0/Sweat Streaks.app`
-- `dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip`
-- `dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip.sha256`
+- `dist/$VERSION/Sweat Streaks.app`
+- `dist/$VERSION/Sweat-Streaks-$VERSION-macos-$(uname -m).zip`
+- `dist/$VERSION/Sweat-Streaks-$VERSION-macos-$(uname -m).zip.sha256`
 
 The packaging script ad-hoc signs the completed `.app` bundle after writing
 `Info.plist`, resources, and icons. This seals the bundle resources so macOS
@@ -47,9 +48,10 @@ The app is not Developer ID signed or notarized. Users may need to approve the f
 
 ## Validate the Artifact
 ```bash
-plutil -lint "dist/v0.1.0/Sweat Streaks.app/Contents/Info.plist"
-codesign --verify --deep --strict --verbose=2 "dist/v0.1.0/Sweat Streaks.app"
-unzip -t "dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip"
+VERSION=vX.Y.Z
+plutil -lint "dist/$VERSION/Sweat Streaks.app/Contents/Info.plist"
+codesign --verify --deep --strict --verbose=2 "dist/$VERSION/Sweat Streaks.app"
+unzip -t "dist/$VERSION/Sweat-Streaks-$VERSION-macos-$(uname -m).zip"
 script/build_and_run.sh --verify
 ```
 
@@ -60,12 +62,13 @@ Manual publishing is a fallback for local release repair or GitHub Actions
 incidents. Normal releases should come from pushes to `main`.
 
 ```bash
-git tag v0.1.0
+VERSION=vX.Y.Z
+git tag "$VERSION"
 git push origin main --tags
-gh release create v0.1.0 \
-  "dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip" \
-  --title "Sweat Streaks v0.1.0" \
-  --notes-file docs/releases/v0.1.0.md
+gh release create "$VERSION" \
+  "dist/$VERSION/Sweat-Streaks-$VERSION-macos-$(uname -m).zip" \
+  --title "Sweat Streaks $VERSION" \
+  --generate-notes
 ```
 
 Use a draft release if the artifact has not been manually launched yet.
@@ -75,8 +78,9 @@ The automated workflow updates the cask during normal releases. For manual
 repair, the cask lives in `anthonylu23/homebrew-tap`:
 
 ```bash
-SHA256=$(cut -d ' ' -f 1 "dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip.sha256")
-scripts/update-homebrew-cask.sh 0.1.0 "$SHA256" ../homebrew-tap/Casks/sweat-streaks.rb
+VERSION=vX.Y.Z
+SHA256=$(cut -d ' ' -f 1 "dist/$VERSION/Sweat-Streaks-$VERSION-macos-$(uname -m).zip.sha256")
+scripts/update-homebrew-cask.sh "${VERSION#v}" "$SHA256" ../homebrew-tap/Casks/sweat-streaks.rb
 ```
 
 Then run:

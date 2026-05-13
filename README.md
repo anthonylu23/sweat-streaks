@@ -8,14 +8,14 @@ It keeps activity data on your Mac, stores GitHub tokens in Keychain, and infers
 - macOS 13+.
 - Swift 6.0+ for source builds.
 - First public distribution is an unsigned macOS arm64 app zip.
-- Developer ID signing, notarization, universal builds, and richer screenshots are planned follow-ups.
+- Developer ID signing, notarization, and universal builds are planned follow-ups.
 
 ## Install
 
 ### GitHub Release
-1. Download `Sweat-Streaks-v0.1.1-macos-arm64.zip` from the latest GitHub Release.
+1. Download the `Sweat-Streaks-vX.Y.Z-macos-arm64.zip` asset from the latest GitHub Release.
 2. Unzip it and move `Sweat Streaks.app` to `/Applications`.
-3. Launch the app. Because the first release is not notarized, macOS may require approval in System Settings -> Privacy & Security.
+3. Launch the app. Because early releases are not notarized, macOS may require approval in System Settings -> Privacy & Security.
 
 ### Homebrew
 ```bash
@@ -32,7 +32,13 @@ script/build_and_run.sh
 ```
 
 ## Screenshots
-Public screenshots are tracked under `docs/assets` once captured from a clean profile with placeholder accounts. Screenshots should not include real usernames, local filesystem paths, tokens, or private provider errors.
+![Sweat Streaks GitHub activity popover](docs/assets/popover-github.png)
+
+![Sweat Streaks Codex activity popover](docs/assets/popover-codex.png)
+
+![Sweat Streaks provider settings](docs/assets/settings-providers.png)
+
+Public screenshots should not include tokens, private provider errors, prompt text, chat text, or edited file contents.
 
 ## Provider Setup
 
@@ -96,7 +102,7 @@ swift build
 swift test
 swift build -c release --product SweatStreaksApp
 script/build_and_run.sh --verify
-scripts/package-release.sh v0.1.1
+scripts/package-release.sh vX.Y.Z
 ```
 
 See `docs/releasing.md` for the automated main-branch release flow, required Homebrew tap token, manual fallback, and local packaging checklist.
