@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import SweatStreaksCore
 import SweatStreaksPersistence
+import SweatStreaksProviderLocalSupport
 
 struct ActivitySquare: Equatable, Identifiable {
     let source: ActivitySource
@@ -11,6 +12,38 @@ struct ActivitySquare: Equatable, Identifiable {
 
     var id: String {
         "\(source.rawValue)-\(day.isoDate)"
+    }
+}
+
+struct ProviderDiagnosticsSnapshot: Equatable, Identifiable {
+    let source: ActivitySource
+    let isTracked: Bool
+    let syncState: ProviderSyncState?
+    let recentSyncRuns: [SyncRunRecord]
+    let localEvidenceItems: [LocalEvidenceDiagnosticItem]
+
+    var id: ActivitySource { source }
+
+    var totalEvidenceCount: Int {
+        localEvidenceItems.reduce(0) { $0 + $1.evidenceCount }
+    }
+
+    var latestEvidenceDay: LocalDay? {
+        localEvidenceItems.compactMap(\.latestEvidenceDay).max()
+    }
+}
+
+struct LocalEvidenceDiagnosticItem: Equatable, Identifiable {
+    let source: ActivitySource
+    let rootLabel: String
+    let evidenceType: String
+    let rootPath: String
+    let rootExists: Bool
+    let evidenceCount: Int
+    let latestEvidenceDay: LocalDay?
+
+    var id: String {
+        "\(source.rawValue)-\(rootLabel)-\(evidenceType)-\(rootPath)"
     }
 }
 
@@ -29,6 +62,7 @@ final class AppModel: ObservableObject {
     @Published var contributionSquares: [ActivitySource: [ActivitySquare]] = [:]
     @Published var activitySquares: [ActivitySquare] = []
     @Published var githubContributionDiagnostic: String?
+    @Published var providerDiagnostics: [ProviderDiagnosticsSnapshot] = []
 
     @Published var githubUsername: String = ""
     @Published var leetCodeUsername: String = ""
@@ -173,6 +207,7 @@ final class AppModel: ObservableObject {
         }
 
         refreshViewStateFromStorage()
+        refreshDiagnosticsFromStorage()
     }
 
     func setTodayOverride(source: ActivitySource, status: OverrideStatus) {
@@ -242,6 +277,7 @@ final class AppModel: ObservableObject {
                 patStatusMessage = "GitHub PAT not set."
             }
             refreshViewStateFromStorage()
+            refreshDiagnosticsFromStorage()
             startRefreshLoop()
         } catch {
             lastSyncWarning = "Failed to save settings: \(error.localizedDescription)"
@@ -318,6 +354,10 @@ final class AppModel: ObservableObject {
         } catch {
             lastSyncWarning = "Failed to load settings: \(error.localizedDescription)"
         }
+    }
+
+    func refreshDiagnostics() {
+        refreshDiagnosticsFromStorage()
     }
 
     private func boolSetting(_ key: SettingsKey, default defaultValue: Bool) throws -> Bool {
@@ -681,6 +721,39 @@ final class AppModel: ObservableObject {
     private func updateLastSyncAt() {
         let lastSuccesses = providerSyncState.values.compactMap(\.lastSuccessAt)
         lastSyncAt = lastSuccesses.max()
+    }
+
+    private func refreshDiagnosticsFromStorage() {
+        let localDiagnostics = ProviderRegistry.localEvidenceDiagnostics(
+            for: trackedProviderSources,
+            localProviderPaths: localProviderPaths
+        )
+
+        do {
+            providerDiagnostics = try ActivitySource.currentProviderSources.map { source in
+                let localEvidenceItems = (localDiagnostics[source]?.items ?? []).map { item in
+                    LocalEvidenceDiagnosticItem(
+                        source: source,
+                        rootLabel: item.rootLabel,
+                        evidenceType: item.evidenceType,
+                        rootPath: item.rootPath,
+                        rootExists: item.rootExists,
+                        evidenceCount: item.evidenceCount,
+                        latestEvidenceDay: item.latestEvidenceDay
+                    )
+                }
+
+                return ProviderDiagnosticsSnapshot(
+                    source: source,
+                    isTracked: trackedProviderSources.contains(source),
+                    syncState: providerSyncState[source],
+                    recentSyncRuns: try repository.fetchRecentSyncRuns(provider: source.rawValue, limit: 5),
+                    localEvidenceItems: localEvidenceItems
+                )
+            }
+        } catch {
+            lastSyncWarning = "Failed to load diagnostics: \(error.localizedDescription)"
+        }
     }
 
     private func evaluateNotifications(today: LocalDay) {

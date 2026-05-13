@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import SweatStreaksCore
+import SweatStreaksPersistence
 
 struct ContentView: View {
     @ObservedObject var model: AppModel
@@ -681,6 +682,8 @@ enum SettingsWindowPresenter {
 
     static func show(model: AppModel) {
         Task { @MainActor in
+            model.refreshDiagnostics()
+
             if window == nil {
                 let hostingController = NSHostingController(rootView: SettingsView(model: model, onDone: close))
                 let settingsWindow = NSWindow(contentViewController: hostingController)
@@ -858,6 +861,16 @@ struct SettingsView: View {
                         .disabled(!model.trackCursorProvider)
                     Toggle("Show Combined streak", isOn: $model.showCombinedStreakInMenuBar)
                 }
+
+                Section {
+                    ForEach(model.providerDiagnostics) { snapshot in
+                        ProviderDiagnosticsRow(snapshot: snapshot)
+                    }
+                } header: {
+                    Text("Provider Diagnostics")
+                } footer: {
+                    Text("Local diagnostics show counts and latest evidence days by configured root/type. Matched file paths, prompt text, chat text, edited file contents, and tokens are not displayed.")
+                }
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
@@ -916,6 +929,185 @@ struct SettingsView: View {
             }
         }
         .textCase(nil)
+    }
+}
+
+private struct ProviderDiagnosticsRow: View {
+    let snapshot: ProviderDiagnosticsSnapshot
+
+    var body: some View {
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: DS.Spacing.s) {
+                syncStateBlock
+                recentRunsBlock
+                if !snapshot.localEvidenceItems.isEmpty {
+                    localEvidenceBlock
+                }
+            }
+            .padding(.top, DS.Spacing.xs)
+        } label: {
+            HStack(spacing: DS.Spacing.s) {
+                SourceBadge(source: snapshot.source)
+                Spacer()
+                Text(snapshot.isTracked ? "Tracked" : "Disabled")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(snapshot.isTracked ? DS.Palette.active(for: snapshot.source) : .secondary)
+                Text(summaryText)
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    private var syncStateBlock: some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.xs) {
+            Text("Sync state")
+                .font(DS.Typography.captionStrong)
+            if let state = snapshot.syncState {
+                diagnosticLine("Last success", state.lastSuccessAt?.formatted(date: .abbreviated, time: .shortened) ?? "Never")
+                diagnosticLine("Cooldown", state.cooldownUntil?.formatted(date: .abbreviated, time: .shortened) ?? "None")
+                diagnosticLine("Stale", state.isStale ? "Yes" : "No")
+                if let lastError = state.lastError, !lastError.isEmpty {
+                    diagnosticLine("Last message", lastError)
+                }
+            } else {
+                Text("No provider state recorded yet.")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var recentRunsBlock: some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.xs) {
+            Text("Recent sync runs")
+                .font(DS.Typography.captionStrong)
+            if snapshot.recentSyncRuns.isEmpty {
+                Text("No sync runs yet.")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(Array(snapshot.recentSyncRuns.enumerated()), id: \.offset) { _, run in
+                    HStack(spacing: DS.Spacing.s) {
+                        Text(run.status.displayName)
+                            .font(DS.Typography.captionStrong)
+                            .foregroundStyle(run.status.diagnosticColor)
+                            .frame(width: 74, alignment: .leading)
+                        Text(run.startedAt.formatted(date: .abbreviated, time: .shortened))
+                            .font(DS.Typography.caption)
+                            .foregroundStyle(.secondary)
+                        if let errorSummary = run.errorSummary, !errorSummary.isEmpty {
+                            Text(errorSummary)
+                                .font(DS.Typography.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var localEvidenceBlock: some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.xs) {
+            Text("Local evidence")
+                .font(DS.Typography.captionStrong)
+            ForEach(snapshot.localEvidenceItems) { item in
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: DS.Spacing.s) {
+                        Text(item.rootLabel)
+                            .font(DS.Typography.captionStrong)
+                        Spacer()
+                        Text("\(item.evidenceCount)")
+                            .font(DS.Typography.captionStrong)
+                            .foregroundStyle(item.evidenceCount > 0 ? DS.Palette.active(for: item.source) : .secondary)
+                        Text(item.latestEvidenceDay?.isoDate ?? "No latest day")
+                            .font(DS.Typography.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack(spacing: DS.Spacing.s) {
+                        Text(item.evidenceType)
+                            .font(DS.Typography.caption)
+                            .foregroundStyle(.secondary)
+                        Text(item.rootExists ? "exists" : "missing")
+                            .font(DS.Typography.caption)
+                            .foregroundStyle(item.rootExists ? .secondary : DS.Palette.risk)
+                        Text(displayPath(item.rootPath))
+                            .font(DS.Typography.mono)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .help(displayPath(item.rootPath))
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private var summaryText: String {
+        if let latestRun = snapshot.recentSyncRuns.first {
+            return latestRun.status.displayName
+        }
+        if !snapshot.localEvidenceItems.isEmpty {
+            return "\(snapshot.totalEvidenceCount) local evidence"
+        }
+        return "No sync runs"
+    }
+
+    private func diagnosticLine(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.s) {
+            Text(label)
+                .font(DS.Typography.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 82, alignment: .leading)
+            Text(value)
+                .font(DS.Typography.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .truncationMode(.middle)
+        }
+    }
+
+    private func displayPath(_ path: String) -> String {
+        let homePath = FileManager.default.homeDirectoryForCurrentUser.path
+        if path == homePath {
+            return "~"
+        }
+        if path.hasPrefix(homePath + "/") {
+            return "~/" + String(path.dropFirst(homePath.count + 1))
+        }
+        return path
+    }
+}
+
+private extension SyncRunStatus {
+    var displayName: String {
+        switch self {
+        case .success:
+            return "Success"
+        case .partial:
+            return "Partial"
+        case .failed:
+            return "Failed"
+        case .rateLimited:
+            return "Cooldown"
+        case .authError:
+            return "Auth"
+        }
+    }
+
+    var diagnosticColor: Color {
+        switch self {
+        case .success:
+            return .secondary
+        case .partial, .rateLimited:
+            return DS.Palette.risk
+        case .failed, .authError:
+            return DS.Palette.danger
+        }
     }
 }
 

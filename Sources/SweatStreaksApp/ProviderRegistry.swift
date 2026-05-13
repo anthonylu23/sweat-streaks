@@ -6,6 +6,7 @@ import SweatStreaksProviderCodex
 import SweatStreaksProviderCursor
 import SweatStreaksProviderGitHub
 import SweatStreaksProviderLeetCode
+import SweatStreaksProviderLocalSupport
 
 @MainActor
 enum ProviderRegistry {
@@ -90,6 +91,28 @@ enum ProviderRegistry {
         case .github, .leetcode, .combined:
             return false
         }
+    }
+
+    static func localEvidenceDiagnostics(
+        for sources: [ActivitySource],
+        localProviderPaths: LocalProviderPathSettings = .defaults
+    ) -> [ActivitySource: ProviderEvidenceDiagnostic] {
+        var diagnostics: [ActivitySource: ProviderEvidenceDiagnostic] = [:]
+
+        if sources.contains(.codex) {
+            diagnostics[.codex] = CodexProvider.evidenceDiagnostic(codexDirectory: localProviderPaths.codexDirectory)
+        }
+        if sources.contains(.claudeCode) {
+            diagnostics[.claudeCode] = ClaudeCodeProvider.evidenceDiagnostic(claudeDirectory: localProviderPaths.claudeCodeDirectory)
+        }
+        if sources.contains(.cursor) {
+            diagnostics[.cursor] = CursorProvider.evidenceDiagnostic(
+                cursorDirectory: localProviderPaths.cursorDirectory,
+                applicationSupportDirectory: localProviderPaths.cursorApplicationSupportDirectory
+            )
+        }
+
+        return diagnostics
     }
 }
 

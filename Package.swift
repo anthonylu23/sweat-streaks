@@ -89,7 +89,8 @@ let package = Package(
                 "SweatStreaksProviderCodex",
                 "SweatStreaksProviderCursor",
                 "SweatStreaksProviderGitHub",
-                "SweatStreaksProviderLeetCode"
+                "SweatStreaksProviderLeetCode",
+                "SweatStreaksProviderLocalSupport"
             ],
             resources: [
                 .process("Resources")
