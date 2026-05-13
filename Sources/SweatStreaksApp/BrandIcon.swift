@@ -2,6 +2,7 @@ import AppKit
 import CoreGraphics
 import Foundation
 
+@MainActor
 enum BrandIcon {
     // Visual weight target: SF Symbols render the glyph in roughly the inner
     // ~80% of their bounding box. We bake that inset into the rendered NSImage

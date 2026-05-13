@@ -2,6 +2,7 @@ import AppKit
 import XCTest
 @testable import SweatStreaksApp
 
+@MainActor
 final class BrandIconSmokeTest: XCTestCase {
     func testGitHubIconRendersNonEmpty() {
         let image = BrandIcon.github

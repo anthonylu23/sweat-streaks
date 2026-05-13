@@ -1,7 +1,7 @@
 # Next Steps
 
 ## Immediate Validation
-- Configure `HOMEBREW_TAP_TOKEN` in the repository and verify the first automated `main` release publishes both the GitHub Release and Homebrew cask update.
+- Verify the first automated `main` release publishes both the GitHub Release and Homebrew cask update after `HOMEBREW_TAP_TOKEN` configuration.
 - Verify a fresh Homebrew install of v0.1.1 no longer reports `code has no resources but signature indicates they must be present` from `codesign --verify --deep --strict`.
 - Verify a fresh Homebrew install of v0.1.1 runs as menu-bar-only without a Dock icon.
 - Capture public screenshots from a clean profile with placeholder account names and no personal paths or provider errors.

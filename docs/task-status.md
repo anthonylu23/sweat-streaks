@@ -278,6 +278,8 @@
   - Added `scripts/next-release-version.sh` so workflow reruns reuse a stable tag already pointing at the current commit.
   - Added `scripts/update-homebrew-cask.sh` so CI can update only the tap cask version and SHA-256.
   - Added Homebrew tap checkout, cask audit, commit, and push steps using the required `HOMEBREW_TAP_TOKEN` repository secret.
+  - Configured `HOMEBREW_TAP_TOKEN` for the GitHub repository using the authenticated GitHub CLI token.
+  - Isolated the AppKit-backed `BrandIcon` image cache and smoke tests to the main actor so GitHub's Xcode 16.4 Swift compiler accepts the build.
   - Documented the automated release flow, manual fallback, and remaining first-run validation.
 - Validation:
   - `bash -n scripts/next-release-version.sh scripts/update-homebrew-cask.sh`
@@ -292,3 +294,6 @@
   - `unzip -t dist/v0.0.0-ci/Sweat-Streaks-v0.0.0-ci-macos-$(uname -m).zip`
   - `swift run SweatStreaksApp` compile/launch check, then stopped after launch
   - `script/build_and_run.sh --verify`
+  - `swift build`
+  - `swift test --filter BrandIconSmokeTest`
+  - `swift test`
