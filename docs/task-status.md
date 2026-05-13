@@ -222,3 +222,17 @@
 - Notes:
   - The public v0.1.0 Homebrew artifact still needs to be rebuilt and republished with the fixed packaging script, then the cask checksum needs to be updated.
   - Developer ID signing and notarization remain the long-term distribution fix.
+
+## Phase 17: Menu-Bar-Only App Presence
+- Status: Complete
+- Completed:
+  - Changed app launch activation policy from regular to accessory so source-built launches do not appear in the Dock.
+  - Updated debug and release app-bundle `Info.plist` generation to set `LSUIElement=true`.
+  - Documented the menu-bar-only behavior in README and architecture notes.
+- Validation:
+  - `swift test`
+  - `swift build`
+  - `swift build -c release --product SweatStreaksApp`
+  - `swift run SweatStreaksApp` compile/launch check, then stopped after launch
+  - `scripts/package-release.sh v0.1.1-menu-bar`
+  - `plutil -extract LSUIElement raw "dist/v0.1.1-menu-bar/Sweat Streaks.app/Contents/Info.plist"` returned `true`

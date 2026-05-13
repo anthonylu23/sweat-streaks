@@ -12,6 +12,7 @@
 - Verify the compact popover on a real menu bar display with all providers enabled, especially segmented-control label fit and heatmap month-label spacing now that Cursor adds a sixth source.
 - Verify LeetCode's public calendar returns expected recent days for the target account.
 - Confirm macOS notification permission flow from a bundled app launch.
+- Verify settings-window keyboard focus from the menu-bar-only accessory app on a fresh packaged install.
 
 ## MVP Hardening
 - Add Developer ID signing, hardened runtime, notarization, and universal macOS builds.

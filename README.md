@@ -1,6 +1,6 @@
 # Sweat Streaks
 
-Sweat Streaks is a local-first macOS menu bar app for tracking daily activity streaks across GitHub, LeetCode, Codex, Claude Code, Cursor, and a Combined status.
+Sweat Streaks is a local-first macOS menu bar app for tracking daily activity streaks across GitHub, LeetCode, Codex, Claude Code, Cursor, and a Combined status. It runs as a menu-bar-only app and does not show a Dock icon while open.
 
 It keeps activity data on your Mac, stores GitHub tokens in Keychain, and infers local AI-tool activity from timestamps and metadata without storing prompt text, chat text, edited file contents, or auth tokens.
 

@@ -90,7 +90,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
   <key>LSUIElement</key>
-  <false/>
+  <true/>
   <key>NSHumanReadableCopyright</key>
   <string>Copyright © 2026 Anthony Lu. All rights reserved.</string>
 </dict>
