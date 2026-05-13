@@ -238,16 +238,18 @@
   - `plutil -extract LSUIElement raw "dist/v0.1.1-menu-bar/Sweat Streaks.app/Contents/Info.plist"` returned `true`
 
 ## Phase 18: v0.1.1 Release
-- Status: In progress
+- Status: Complete
 - Completed:
   - Added v0.1.1 release notes for the menu-bar-only patch release.
   - Updated README install/build examples to reference v0.1.1.
   - Built and validated the v0.1.1 macOS arm64 release zip.
-  - Updated the local Homebrew tap cask to version 0.1.1 with the new zip checksum.
+  - Published GitHub Release v0.1.1 with `Sweat-Streaks-v0.1.1-macos-arm64.zip`.
+  - Updated and pushed the Homebrew tap cask to version 0.1.1 with the new zip checksum.
 - Validation:
   - `scripts/package-release.sh v0.1.1`
   - `unzip -t dist/v0.1.1/Sweat-Streaks-v0.1.1-macos-arm64.zip`
   - `codesign --verify --deep --strict --verbose=2 "dist/v0.1.1/Sweat Streaks.app"`
   - `plutil -extract LSUIElement raw "dist/v0.1.1/Sweat Streaks.app/Contents/Info.plist"` returned `true`
-  - Pending: GitHub Release publication
-  - Pending: Homebrew cask commit/push
+  - `gh release create v0.1.1 dist/v0.1.1/Sweat-Streaks-v0.1.1-macos-arm64.zip --title "Sweat Streaks v0.1.1" --notes-file docs/releases/v0.1.1.md`
+  - `brew audit --cask --strict anthonylu23/tap/sweat-streaks`
+  - `brew fetch --cask anthonylu23/tap/sweat-streaks`
