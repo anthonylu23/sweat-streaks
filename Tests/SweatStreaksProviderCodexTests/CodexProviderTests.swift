@@ -53,6 +53,29 @@ final class CodexProviderTests: XCTestCase {
         XCTAssertEqual(result.days[LocalDay(year: 2026, month: 5, day: 12)], .inactive)
     }
 
+    func testEvidenceDiagnosticSummarizesConfiguredRootsWithoutMatchedFilePaths() throws {
+        let root = try makeTemporaryDirectory()
+        let log = root.appendingPathComponent("sessions/2026/05/12/session.jsonl")
+        try writeJSONL(
+            at: log,
+            lines: [
+                #"{"timestamp":"2026-05-12T14:03:27.123Z","type":"session_meta","payload":{}}"#
+            ]
+        )
+        try FileManager.default.setAttributes([.modificationDate: Self.date(year: 2026, month: 5, day: 12, hour: 16)], ofItemAtPath: log.path)
+
+        let diagnostic = CodexProvider.evidenceDiagnostic(codexDirectory: root)
+
+        XCTAssertEqual(diagnostic.source, .codex)
+        XCTAssertEqual(diagnostic.totalEvidenceCount, 1)
+        XCTAssertEqual(diagnostic.latestEvidenceDay, LocalDay(year: 2026, month: 5, day: 12))
+        XCTAssertEqual(diagnostic.items.count, 2)
+        XCTAssertEqual(diagnostic.items.first?.rootLabel, "Codex sessions")
+        XCTAssertEqual(diagnostic.items.first?.evidenceCount, 1)
+        XCTAssertEqual(diagnostic.items.first?.rootPath, root.appendingPathComponent("sessions", isDirectory: true).path)
+        XCTAssertFalse(diagnostic.items.first?.rootPath.contains("session.jsonl") == true)
+    }
+
     private func makeTemporaryDirectory() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)

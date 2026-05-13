@@ -97,6 +97,38 @@ final class CursorProviderTests: XCTestCase {
         XCTAssertEqual(result.days[LocalDay(year: 2026, month: 5, day: 12)], .inactive)
     }
 
+    func testEvidenceDiagnosticSummarizesMetadataAndDatabases() throws {
+        let fixture = try makeFixture()
+        let workerLog = fixture.cursor.appendingPathComponent("projects/demo/worker.log")
+        try writeFile(at: workerLog)
+        try setModificationDate(Self.date(year: 2026, month: 5, day: 13, hour: 10), for: workerLog)
+        try createAITrackingDatabase(
+            at: fixture.cursor.appendingPathComponent("ai-tracking/ai-code-tracking.db"),
+            timestamp: Self.date(year: 2026, month: 5, day: 14, hour: 18)
+        )
+        try createGlobalStateDatabase(
+            at: fixture.applicationSupport.appendingPathComponent("User/globalStorage/state.vscdb"),
+            dailyStatsDay: "2026-05-15"
+        )
+
+        let diagnostic = CursorProvider.evidenceDiagnostic(
+            cursorDirectory: fixture.cursor,
+            applicationSupportDirectory: fixture.applicationSupport,
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+
+        XCTAssertEqual(diagnostic.source, .cursor)
+        XCTAssertEqual(diagnostic.totalEvidenceCount, 3)
+        XCTAssertEqual(diagnostic.latestEvidenceDay, LocalDay(year: 2026, month: 5, day: 15))
+        XCTAssertEqual(diagnostic.items.map(\.evidenceType), [
+            "Agent/chat metadata",
+            "SQLite activity rows",
+            "SQLite daily-stat keys"
+        ])
+        XCTAssertEqual(diagnostic.items.map(\.evidenceCount), [1, 1, 1])
+        XCTAssertFalse(diagnostic.items.contains { $0.rootPath.contains("worker.log") })
+    }
+
     private func makeFixture() throws -> (root: URL, cursor: URL, applicationSupport: URL) {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         let cursor = root.appendingPathComponent(".cursor", isDirectory: true)

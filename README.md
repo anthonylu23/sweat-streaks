@@ -78,6 +78,8 @@ JSONL logs are streamed line by line and only timestamp fields are parsed for ac
 - Stale detection warns when last successful sync is older than 24 hours.
 - Combined days are derived from enabled provider statuses after manual overrides.
 - Current streaks use an end-of-day grace rule: if today's provider status is not active yet, the displayed current streak is calculated through yesterday until local midnight. Manual inactive overrides reset immediately.
+- Settings include provider diagnostics with recent sync runs, persisted sync state, and local-provider evidence counts by configured root/type.
+- Local-provider diagnostics show counts and latest evidence days, not matched file paths or private content.
 
 ## Privacy and Security
 - GitHub PATs are stored in Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`.
@@ -107,6 +109,7 @@ See `docs/releasing.md` for the release checklist and Homebrew cask update flow.
 - `No Claude Code activity logs found`: Claude Code tracking is enabled but no local history/project JSONL files were found.
 - `No Cursor AI activity found`: Cursor tracking is enabled but no supported local AI usage evidence was found.
 - `GitHub data is stale`: no successful sync in more than 24 hours.
+- Use Settings -> Provider Diagnostics to inspect recent provider sync runs, cooldown/stale state, and local evidence counts.
 - If unsigned builds are blocked by Gatekeeper, approve the app in System Settings -> Privacy & Security.
 - If a Homebrew install says the app is damaged, verify the bundle signature with `codesign --verify --deep --strict --verbose=2 /Applications/Sweat\ Streaks.app`. A `code has no resources but signature indicates they must be present` error means the release zip was built without signing the completed app bundle.
 

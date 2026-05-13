@@ -253,3 +253,20 @@
   - `gh release create v0.1.1 dist/v0.1.1/Sweat-Streaks-v0.1.1-macos-arm64.zip --title "Sweat Streaks v0.1.1" --notes-file docs/releases/v0.1.1.md`
   - `brew audit --cask --strict anthonylu23/tap/sweat-streaks`
   - `brew fetch --cask anthonylu23/tap/sweat-streaks`
+
+## Phase 19: Provider Diagnostics
+- Status: Complete for first diagnostics pass
+- Completed:
+  - Added Settings provider diagnostics rows for tracked/disabled state, persisted sync state, and recent sync runs.
+  - Added repository access for recent provider sync runs with deterministic newest-first ordering and limits.
+  - Added privacy-preserving local evidence diagnostics for Codex, Claude Code, and Cursor.
+  - Local diagnostics show configured root/type summaries, evidence counts, and latest evidence days without matched file paths or private content.
+  - App diagnostics refresh after sync, after settings save, and when Settings opens.
+  - Added provider, persistence, and app-model regression tests for diagnostics.
+- Validation:
+  - `swift test`
+  - `swift build`
+  - `script/build_and_run.sh --verify`
+  - `swift run SweatStreaksApp` compile/launch check, then stopped after launch
+- Notes:
+  - Diagnostics currently live in Settings; a dedicated diagnostics window remains an option if the section becomes too dense.

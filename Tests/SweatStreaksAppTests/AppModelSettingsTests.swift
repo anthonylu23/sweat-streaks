@@ -81,6 +81,32 @@ final class AppModelSettingsTests: XCTestCase {
         XCTAssertEqual(fixture.model.lastSyncWarning, "No provider activity data yet. Configure a provider or refresh sync.")
     }
 
+    func testProviderDiagnosticsRefreshWhenLocalProviderPathsAreSaved() throws {
+        let fixture = try makeFixture(launchAtLoginManager: RecordingLaunchAtLoginManager(isEnabled: false))
+        let codexRoot = try makeTemporaryDirectory()
+        try writeJSONL(
+            at: codexRoot.appendingPathComponent("sessions/2026/05/12/session.jsonl"),
+            lines: [
+                #"{"timestamp":"2026-05-12T14:03:27.123Z","type":"session_meta","payload":{}}"#
+            ]
+        )
+        let log = codexRoot.appendingPathComponent("sessions/2026/05/12/session.jsonl")
+        try FileManager.default.setAttributes([.modificationDate: Self.date(year: 2026, month: 5, day: 12, hour: 16)], ofItemAtPath: log.path)
+
+        fixture.model.trackCodexProvider = true
+        fixture.model.trackClaudeCodeProvider = false
+        fixture.model.trackCursorProvider = false
+        fixture.model.codexPath = codexRoot.path
+
+        fixture.model.saveSettings()
+
+        let codexDiagnostics = try XCTUnwrap(fixture.model.providerDiagnostics.first { $0.source == .codex })
+        XCTAssertTrue(codexDiagnostics.isTracked)
+        XCTAssertEqual(codexDiagnostics.totalEvidenceCount, 1)
+        XCTAssertEqual(codexDiagnostics.latestEvidenceDay, LocalDay(year: 2026, month: 5, day: 12))
+        XCTAssertEqual(codexDiagnostics.localEvidenceItems.first?.rootPath, codexRoot.appendingPathComponent("sessions", isDirectory: true).path)
+    }
+
     private func makeFixture(
         launchAtLoginManager: RecordingLaunchAtLoginManager
     ) throws -> (
@@ -99,6 +125,26 @@ final class AppModelSettingsTests: XCTestCase {
             launchAtLoginManager: launchAtLoginManager
         )
         return (model, settingsStore, launchAtLoginManager)
+    }
+
+    private func makeTemporaryDirectory() throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: url)
+        }
+        return url
+    }
+
+    private func writeJSONL(at url: URL, lines: [String]) throws {
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    private static func date(year: Int, month: Int, day: Int, hour: Int = 0) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar.date(from: DateComponents(timeZone: calendar.timeZone, year: year, month: month, day: day, hour: hour))!
     }
 }
 

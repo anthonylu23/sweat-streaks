@@ -206,4 +206,31 @@ final class SweatRepositoryTests: XCTestCase {
         XCTAssertEqual(latestRun?.status, .success)
         XCTAssertEqual(mostRecentDay, secondDay)
     }
+
+    func testFetchRecentSyncRunsReturnsNewestRunsFirstWithLimit() throws {
+        let manager = try DatabaseManager(inMemory: true)
+        let repository = SweatRepository(dbQueue: manager.dbQueue)
+        let first = Date(timeIntervalSince1970: 100)
+        let second = Date(timeIntervalSince1970: 200)
+        let third = Date(timeIntervalSince1970: 300)
+
+        try repository.logSyncRun(
+            SyncRunRecord(provider: "github", startedAt: first, finishedAt: first, status: .success, errorSummary: nil)
+        )
+        try repository.logSyncRun(
+            SyncRunRecord(provider: "github", startedAt: second, finishedAt: second, status: .failed, errorSummary: "Network error")
+        )
+        try repository.logSyncRun(
+            SyncRunRecord(provider: "github", startedAt: third, finishedAt: third, status: .partial, errorSummary: "Warning")
+        )
+        try repository.logSyncRun(
+            SyncRunRecord(provider: "leetcode", startedAt: third, finishedAt: third, status: .success, errorSummary: nil)
+        )
+
+        let runs = try repository.fetchRecentSyncRuns(provider: "github", limit: 2)
+
+        XCTAssertEqual(runs.map(\.startedAt), [third, second])
+        XCTAssertEqual(runs.map(\.status), [.partial, .failed])
+        XCTAssertEqual(try repository.fetchRecentSyncRuns(provider: "github", limit: 0), [])
+    }
 }

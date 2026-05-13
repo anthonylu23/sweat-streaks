@@ -19,9 +19,9 @@
 - Automate release notes and Homebrew cask checksum updates after the first manual release is proven.
 - Add a richer manual override editor for arbitrary dates, custom notes, and audit review.
 - Add UI smoke tests for settings window focus/text entry, settings save, refresh, provider-state display, and override toggles.
-- Add a diagnostics view for recent sync runs and provider error history.
+- Validate the Settings provider diagnostics section against real provider data and decide whether it should move into a dedicated window.
 - Add a LeetCode fallback adapter if the public GraphQL profile calendar proves unreliable.
-- Add diagnostics for local provider log discovery, including which configured local paths produced evidence without exposing file contents.
+- Add richer local-provider diagnostics only if counts/latest-day summaries are insufficient during real-world validation.
 
 ## Product Polish
 - Gather real-world feedback on the compact menu bar icon-and-number labels and adjust if they are too wide or unclear.

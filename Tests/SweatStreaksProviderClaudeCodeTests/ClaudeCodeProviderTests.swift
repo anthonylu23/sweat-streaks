@@ -51,6 +51,35 @@ final class ClaudeCodeProviderTests: XCTestCase {
         XCTAssertEqual(result.days[LocalDay(year: 2026, month: 5, day: 12)], .inactive)
     }
 
+    func testEvidenceDiagnosticSummarizesHistoryAndProjects() throws {
+        let root = try makeTemporaryDirectory()
+        let history = root.appendingPathComponent("history.jsonl")
+        let project = root.appendingPathComponent("projects/demo/session.jsonl")
+        try writeJSONL(
+            at: history,
+            lines: [
+                #"{"timestamp":"2026-05-12T10:00:00.000Z","sessionId":"one","project":"demo"}"#
+            ]
+        )
+        try writeJSONL(
+            at: project,
+            lines: [
+                #"{"timestamp":"2026-05-13T09:00:00Z","type":"user","sessionId":"two"}"#
+            ]
+        )
+        try FileManager.default.setAttributes([.modificationDate: Self.date(year: 2026, month: 5, day: 12, hour: 16)], ofItemAtPath: history.path)
+        try FileManager.default.setAttributes([.modificationDate: Self.date(year: 2026, month: 5, day: 13, hour: 16)], ofItemAtPath: project.path)
+
+        let diagnostic = ClaudeCodeProvider.evidenceDiagnostic(claudeDirectory: root)
+
+        XCTAssertEqual(diagnostic.source, .claudeCode)
+        XCTAssertEqual(diagnostic.totalEvidenceCount, 2)
+        XCTAssertEqual(diagnostic.latestEvidenceDay, LocalDay(year: 2026, month: 5, day: 13))
+        XCTAssertEqual(diagnostic.items.map(\.rootLabel), ["Claude Code history", "Claude Code projects"])
+        XCTAssertEqual(diagnostic.items.map(\.evidenceCount), [1, 1])
+        XCTAssertFalse(diagnostic.items.contains { $0.rootPath.contains("session.jsonl") })
+    }
+
     private func makeTemporaryDirectory() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
