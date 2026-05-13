@@ -57,6 +57,56 @@ public struct CursorProvider: ActivityProvider {
             || globalStateDatabaseHasDailyStats(applicationSupportDirectory: applicationSupportDirectory)
     }
 
+    public static func evidenceDiagnostic(
+        cursorDirectory: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".cursor", isDirectory: true),
+        applicationSupportDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/Cursor", isDirectory: true),
+        timeZone: TimeZone = .current,
+        fileManager: FileManager = .default
+    ) -> ProviderEvidenceDiagnostic {
+        let metadataDates = aiMetadataEvidenceDates(
+            cursorDirectory: cursorDirectory,
+            fileManager: fileManager
+        )
+        let metadataDays = metadataDates.map { LocalDay.from(date: $0, in: timeZone) }
+
+        let aiTrackingURL = cursorDirectory.appendingPathComponent("ai-tracking/ai-code-tracking.db", isDirectory: false)
+        let aiTracking = aiTrackingDatabaseEvidence(at: aiTrackingURL, timeZone: timeZone)
+
+        let globalStateURL = applicationSupportDirectory.appendingPathComponent("User/globalStorage/state.vscdb", isDirectory: false)
+        let globalState = globalStateDatabaseEvidence(at: globalStateURL)
+
+        return ProviderEvidenceDiagnostic(
+            source: .cursor,
+            items: [
+                ProviderEvidenceItem(
+                    rootLabel: "Cursor data root",
+                    evidenceType: "Agent/chat metadata",
+                    rootPath: cursorDirectory.path,
+                    rootExists: rootExists(cursorDirectory, fileManager: fileManager),
+                    evidenceCount: metadataDates.count,
+                    latestEvidenceDay: metadataDays.max()
+                ),
+                ProviderEvidenceItem(
+                    rootLabel: "Cursor AI tracking database",
+                    evidenceType: "SQLite activity rows",
+                    rootPath: aiTrackingURL.path,
+                    rootExists: rootExists(aiTrackingURL, fileManager: fileManager),
+                    evidenceCount: aiTracking.count,
+                    latestEvidenceDay: aiTracking.latestDay
+                ),
+                ProviderEvidenceItem(
+                    rootLabel: "Cursor app-support daily stats",
+                    evidenceType: "SQLite daily-stat keys",
+                    rootPath: globalStateURL.path,
+                    rootExists: rootExists(globalStateURL, fileManager: fileManager),
+                    evidenceCount: globalState.count,
+                    latestEvidenceDay: globalState.latestDay
+                )
+            ]
+        )
+    }
+
     public static func scanActivityDays(
         cursorDirectory: URL,
         applicationSupportDirectory: URL,
@@ -229,6 +279,58 @@ public struct CursorProvider: ActivityProvider {
         } catch {
             return nil
         }
+    }
+
+    private static func aiTrackingDatabaseEvidence(at url: URL, timeZone: TimeZone) -> (count: Int, latestDay: LocalDay?) {
+        readSQLiteDatabase(at: url) { db in
+            let hashCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM ai_code_hashes") ?? 0
+            let deletedCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM ai_deleted_files") ?? 0
+            var latestDay: LocalDay?
+
+            for column in ["createdAt", "timestamp"] {
+                let timestamps = try Int64.fetchAll(
+                    db,
+                    sql: "SELECT \(column) FROM ai_code_hashes WHERE \(column) IS NOT NULL"
+                )
+                latestDay = laterDay(latestDay, latestDayFromEpochMilliseconds(timestamps, timeZone: timeZone))
+            }
+
+            let deletedTimestamps = try Int64.fetchAll(db, sql: "SELECT deletedAt FROM ai_deleted_files")
+            latestDay = laterDay(latestDay, latestDayFromEpochMilliseconds(deletedTimestamps, timeZone: timeZone))
+
+            return (hashCount + deletedCount, latestDay)
+        } ?? (0, nil)
+    }
+
+    private static func globalStateDatabaseEvidence(at url: URL) -> (count: Int, latestDay: LocalDay?) {
+        readSQLiteDatabase(at: url) { db in
+            let keys = try String.fetchAll(
+                db,
+                sql: "SELECT key FROM ItemTable WHERE key LIKE 'aiCodeTracking.dailyStats.%'"
+            )
+            let days = keys.compactMap { dayFromDailyStatsKey($0) }
+            return (keys.count, days.max())
+        } ?? (0, nil)
+    }
+
+    private static func latestDayFromEpochMilliseconds(_ timestamps: [Int64], timeZone: TimeZone) -> LocalDay? {
+        timestamps.map { LocalDay.from(date: date(fromEpochMilliseconds: $0), in: timeZone) }.max()
+    }
+
+    private static func laterDay(_ lhs: LocalDay?, _ rhs: LocalDay?) -> LocalDay? {
+        switch (lhs, rhs) {
+        case (nil, nil):
+            return nil
+        case let (day?, nil), let (nil, day?):
+            return day
+        case let (left?, right?):
+            return max(left, right)
+        }
+    }
+
+    private static func rootExists(_ root: URL, fileManager: FileManager) -> Bool {
+        var isDirectory: ObjCBool = false
+        return fileManager.fileExists(atPath: root.path, isDirectory: &isDirectory)
     }
 
     private static func dayFromDailyStatsKey(_ key: String) -> LocalDay? {

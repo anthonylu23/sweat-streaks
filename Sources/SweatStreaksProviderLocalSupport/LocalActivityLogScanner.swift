@@ -2,6 +2,29 @@ import Foundation
 import SweatStreaksCore
 
 public enum LocalActivityLogScanner {
+    public static func jsonlEvidenceDiagnostic(
+        source: ActivitySource,
+        roots: [(label: String, evidenceType: String, url: URL)],
+        timeZone: TimeZone = .current,
+        fileManager: FileManager = .default
+    ) -> ProviderEvidenceDiagnostic {
+        ProviderEvidenceDiagnostic(
+            source: source,
+            items: roots.map { root in
+                let files = jsonlFiles(under: [root.url], fileManager: fileManager)
+                let evidence = fileEvidence(in: files, timeZone: timeZone)
+                return ProviderEvidenceItem(
+                    rootLabel: root.label,
+                    evidenceType: root.evidenceType,
+                    rootPath: root.url.path,
+                    rootExists: rootExists(root.url, fileManager: fileManager),
+                    evidenceCount: evidence.count,
+                    latestEvidenceDay: evidence.latestDay
+                )
+            }
+        )
+    }
+
     public static func jsonlFiles(under roots: [URL], fileManager: FileManager = .default) -> [URL] {
         var files: [URL] = []
 
@@ -98,6 +121,22 @@ public enum LocalActivityLogScanner {
         }
 
         return parseDate(timestamp)
+    }
+
+    private static func fileEvidence(
+        in files: [URL],
+        timeZone: TimeZone
+    ) -> (count: Int, latestDay: LocalDay?) {
+        let days = files.compactMap { file in
+            (try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+                .map { LocalDay.from(date: $0, in: timeZone) }
+        }
+        return (files.count, days.max())
+    }
+
+    private static func rootExists(_ root: URL, fileManager: FileManager) -> Bool {
+        var isDirectory: ObjCBool = false
+        return fileManager.fileExists(atPath: root.path, isDirectory: &isDirectory)
     }
 
     private static func parseDate(_ rawValue: String) -> Date? {

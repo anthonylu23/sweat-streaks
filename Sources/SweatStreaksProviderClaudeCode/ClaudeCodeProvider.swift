@@ -37,6 +37,26 @@ public struct ClaudeCodeProvider: ActivityProvider {
         )
     }
 
+    public static func evidenceDiagnostic(
+        claudeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude", isDirectory: true)
+    ) -> ProviderEvidenceDiagnostic {
+        LocalActivityLogScanner.jsonlEvidenceDiagnostic(
+            source: .claudeCode,
+            roots: [
+                (
+                    label: "Claude Code history",
+                    evidenceType: "JSONL timestamps",
+                    url: claudeDirectory.appendingPathComponent("history.jsonl", isDirectory: false)
+                ),
+                (
+                    label: "Claude Code projects",
+                    evidenceType: "JSONL timestamps",
+                    url: claudeDirectory.appendingPathComponent("projects", isDirectory: true)
+                )
+            ]
+        )
+    }
+
     public static func hasLocalActivityLogs(claudeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude", isDirectory: true)) -> Bool {
         !activityLogFiles(claudeDirectory: claudeDirectory).isEmpty
     }

@@ -431,6 +431,38 @@ public final class SweatRepository {
         }
     }
 
+    public func fetchRecentSyncRuns(provider: String, limit: Int) throws -> [SyncRunRecord] {
+        guard limit > 0 else { return [] }
+
+        return try dbQueue.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT provider, started_at, finished_at, status, error_summary
+                    FROM sync_runs
+                    WHERE provider = ?
+                    ORDER BY started_at DESC
+                    LIMIT ?
+                """,
+                arguments: [provider, limit]
+            )
+
+            return rows.compactMap { row in
+                guard let status = SyncRunStatus(rawValue: row["status"]) else {
+                    return nil
+                }
+
+                return SyncRunRecord(
+                    provider: row["provider"],
+                    startedAt: row["started_at"],
+                    finishedAt: row["finished_at"],
+                    status: status,
+                    errorSummary: row["error_summary"]
+                )
+            }
+        }
+    }
+
     public func fetchLatestSuccessfulSyncRun(provider: String) throws -> SyncRunRecord? {
         try dbQueue.read { db in
             guard let row = try Row.fetchOne(

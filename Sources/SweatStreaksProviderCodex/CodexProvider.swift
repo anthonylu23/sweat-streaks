@@ -37,6 +37,26 @@ public struct CodexProvider: ActivityProvider {
         )
     }
 
+    public static func evidenceDiagnostic(
+        codexDirectory: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex", isDirectory: true)
+    ) -> ProviderEvidenceDiagnostic {
+        LocalActivityLogScanner.jsonlEvidenceDiagnostic(
+            source: .codex,
+            roots: [
+                (
+                    label: "Codex sessions",
+                    evidenceType: "JSONL timestamps",
+                    url: codexDirectory.appendingPathComponent("sessions", isDirectory: true)
+                ),
+                (
+                    label: "Codex archived sessions",
+                    evidenceType: "JSONL timestamps",
+                    url: codexDirectory.appendingPathComponent("archived_sessions", isDirectory: true)
+                )
+            ]
+        )
+    }
+
     public static func hasLocalActivityLogs(codexDirectory: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex", isDirectory: true)) -> Bool {
         !activityLogFiles(codexDirectory: codexDirectory).isEmpty
     }
