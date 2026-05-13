@@ -270,3 +270,25 @@
   - `swift run SweatStreaksApp` compile/launch check, then stopped after launch
 - Notes:
   - Diagnostics currently live in Settings; a dedicated diagnostics window remains an option if the section becomes too dense.
+
+## Phase 20: Automated Release Publishing
+- Status: Complete
+- Completed:
+  - Added a `main`-push release job to CI that runs after Swift validation, computes the next patch version, builds the macOS release zip, and publishes a GitHub Release with generated notes.
+  - Added `scripts/next-release-version.sh` so workflow reruns reuse a stable tag already pointing at the current commit.
+  - Added `scripts/update-homebrew-cask.sh` so CI can update only the tap cask version and SHA-256.
+  - Added Homebrew tap checkout, cask audit, commit, and push steps using the required `HOMEBREW_TAP_TOKEN` repository secret.
+  - Documented the automated release flow, manual fallback, and remaining first-run validation.
+- Validation:
+  - `bash -n scripts/next-release-version.sh scripts/update-homebrew-cask.sh`
+  - `scripts/next-release-version.sh HEAD` returned `v0.1.2`
+  - `scripts/next-release-version.sh "$(git rev-list -n 1 v0.1.1)"` returned `v0.1.1`
+  - `scripts/update-homebrew-cask.sh` rewrote a temporary one-line cask fixture version/SHA while preserving the URL template
+  - GitHub Actions workflow YAML parsed successfully with Ruby YAML
+  - `swift test`
+  - `swift build`
+  - `swift build -c release --product SweatStreaksApp`
+  - `scripts/package-release.sh v0.0.0-ci`
+  - `unzip -t dist/v0.0.0-ci/Sweat-Streaks-v0.0.0-ci-macos-$(uname -m).zip`
+  - `swift run SweatStreaksApp` compile/launch check, then stopped after launch
+  - `script/build_and_run.sh --verify`

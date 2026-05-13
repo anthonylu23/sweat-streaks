@@ -1,6 +1,7 @@
 # Next Steps
 
 ## Immediate Validation
+- Configure `HOMEBREW_TAP_TOKEN` in the repository and verify the first automated `main` release publishes both the GitHub Release and Homebrew cask update.
 - Verify a fresh Homebrew install of v0.1.1 no longer reports `code has no resources but signature indicates they must be present` from `codesign --verify --deep --strict`.
 - Verify a fresh Homebrew install of v0.1.1 runs as menu-bar-only without a Dock icon.
 - Capture public screenshots from a clean profile with placeholder account names and no personal paths or provider errors.
@@ -16,7 +17,7 @@
 
 ## MVP Hardening
 - Add Developer ID signing, hardened runtime, notarization, and universal macOS builds.
-- Automate release notes and Homebrew cask checksum updates after the first manual release is proven.
+- Decide whether automated releases should eventually update notarized/universal artifacts instead of the current unsigned arm64 zip.
 - Add a richer manual override editor for arbitrary dates, custom notes, and audit review.
 - Add UI smoke tests for settings window focus/text entry, settings save, refresh, provider-state display, and override toggles.
 - Validate the Settings provider diagnostics section against real provider data and decide whether it should move into a dedicated window.

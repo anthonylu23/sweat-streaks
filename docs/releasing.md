@@ -8,6 +8,23 @@ Sweat Streaks currently ships as an unsigned macOS app bundle in a zip attached 
 - Swift 6.0+
 - GitHub CLI authenticated with permission to push releases
 - Homebrew for cask validation
+- Repository secret `HOMEBREW_TAP_TOKEN` with contents read/write access to `anthonylu23/homebrew-tap`
+
+## Automated Main-Branch Releases
+The `CI` GitHub Actions workflow publishes a release after the Swift build/test
+job passes on every push to `main`.
+
+The release job:
+1. Fetches tags and runs `scripts/next-release-version.sh "$GITHUB_SHA"`.
+2. Reuses a stable `vX.Y.Z` tag already pointing at the current commit, which makes reruns safe after a partial failure.
+3. Otherwise increments the latest stable semver tag by one patch version.
+4. Builds the macOS zip with `scripts/package-release.sh "$VERSION"`.
+5. Creates or updates the GitHub Release with generated notes and uploads the zip plus `.sha256`.
+6. Checks out `anthonylu23/homebrew-tap`, updates `Casks/sweat-streaks.rb` with `scripts/update-homebrew-cask.sh`, audits the cask, then commits and pushes the tap update.
+
+If the workflow publishes the GitHub Release but fails before pushing the tap,
+rerun the failed workflow. The version helper should reuse the tag on that same
+commit instead of creating another patch version.
 
 ## Build the Release Zip
 ```bash
@@ -39,6 +56,9 @@ script/build_and_run.sh --verify
 Launch the app once from the unzipped bundle before publishing.
 
 ## Publish on GitHub
+Manual publishing is a fallback for local release repair or GitHub Actions
+incidents. Normal releases should come from pushes to `main`.
+
 ```bash
 git tag v0.1.0
 git push origin main --tags
@@ -51,13 +71,15 @@ gh release create v0.1.0 \
 Use a draft release if the artifact has not been manually launched yet.
 
 ## Update Homebrew
-The cask lives in `anthonylu23/homebrew-tap`:
+The automated workflow updates the cask during normal releases. For manual
+repair, the cask lives in `anthonylu23/homebrew-tap`:
 
 ```bash
 SHA256=$(cut -d ' ' -f 1 "dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip.sha256")
+scripts/update-homebrew-cask.sh 0.1.0 "$SHA256" ../homebrew-tap/Casks/sweat-streaks.rb
 ```
 
-Update `Casks/sweat-streaks.rb` with the new version and checksum, then run:
+Then run:
 
 ```bash
 brew tap anthonylu23/tap

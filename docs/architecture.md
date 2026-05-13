@@ -119,10 +119,10 @@ SweatStreaksCore
 15. Notification engine sends at most one local risk notification per day when combined is not active after the configured reminder hour. Notification APIs are skipped when the executable is not running from an `.app` bundle, so direct SwiftPM executable launches do not crash.
 
 ## Distribution Flow
-1. `scripts/package-release.sh vX.Y.Z` builds `SweatStreaksApp` in release mode.
-2. The script assembles `Sweat Streaks.app` with the SwiftPM executable, SwiftPM resource bundle, generated `Info.plist`, and `.icns` icon.
-3. The unsigned app is zipped as `Sweat-Streaks-vX.Y.Z-macos-$(uname -m).zip`.
-4. GitHub Releases host the zip, and the Homebrew cask in `anthonylu23/homebrew-tap` installs that same artifact by version and SHA-256.
+1. Pushes to `main` run GitHub Actions CI. After Swift validation passes, the release job computes the next stable patch tag with `scripts/next-release-version.sh`.
+2. `scripts/package-release.sh vX.Y.Z` builds `SweatStreaksApp` in release mode, assembles `Sweat Streaks.app` with the SwiftPM executable/resources, generated `Info.plist`, and `.icns` icon, then zips it as `Sweat-Streaks-vX.Y.Z-macos-$(uname -m).zip`.
+3. The release job creates or reuses the `vX.Y.Z` tag, publishes a GitHub Release with generated notes, and uploads the zip plus `.sha256`.
+4. The same job updates `Casks/sweat-streaks.rb` in `anthonylu23/homebrew-tap` with `scripts/update-homebrew-cask.sh`, audits it with Homebrew, and pushes the cask version/checksum commit.
 5. App-support directory and SQLite names intentionally stay `SweatStreaks` / `sweat_streaks.sqlite` so open-source repo renaming does not migrate local data.
 
 ## UI Windowing Notes

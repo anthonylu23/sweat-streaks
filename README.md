@@ -99,7 +99,7 @@ script/build_and_run.sh --verify
 scripts/package-release.sh v0.1.1
 ```
 
-See `docs/releasing.md` for the release checklist and Homebrew cask update flow.
+See `docs/releasing.md` for the automated main-branch release flow, required Homebrew tap token, manual fallback, and local packaging checklist.
 
 ## Troubleshooting
 - `Set GitHub PAT in settings`: PAT is missing in Keychain.

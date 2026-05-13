@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Swift tests
@@ -23,3 +26,119 @@ jobs:
         run: |
           scripts/package-release.sh v0.0.0-ci
           unzip -t dist/v0.0.0-ci/Sweat-Streaks-v0.0.0-ci-macos-$(uname -m).zip
+
+  release:
+    name: Publish release
+    runs-on: macos-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    concurrency:
+      group: release-main
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Swift version
+        run: swift --version
+      - name: Verify release architecture
+        run: |
+          if [[ "$(uname -m)" != "arm64" ]]; then
+            echo "Release publishing expects an arm64 macOS runner." >&2
+            exit 1
+          fi
+      - name: Compute release version
+        id: version
+        run: |
+          version="$(scripts/next-release-version.sh "$GITHUB_SHA")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version_number=${version#v}" >> "$GITHUB_OUTPUT"
+      - name: Build release artifact
+        run: scripts/package-release.sh "${{ steps.version.outputs.version }}"
+      - name: Capture release artifact paths
+        id: artifact
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          zip_path="dist/$version/Sweat-Streaks-$version-macos-$(uname -m).zip"
+          sha_path="$zip_path.sha256"
+
+          if [[ ! -f "$zip_path" ]]; then
+            echo "Missing release zip: $zip_path" >&2
+            exit 1
+          fi
+
+          if [[ ! -f "$sha_path" ]]; then
+            echo "Missing release checksum: $sha_path" >&2
+            exit 1
+          fi
+
+          sha256="$(cut -d ' ' -f 1 "$sha_path")"
+          echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
+          echo "sha_path=$sha_path" >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+      - name: Create release tag
+        run: |
+          version="${{ steps.version.outputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git rev-parse --verify --quiet "refs/tags/$version" >/dev/null; then
+            tag_commit="$(git rev-list -n 1 "$version")"
+            if [[ "$tag_commit" != "$GITHUB_SHA" ]]; then
+              echo "Tag $version already points at $tag_commit, not $GITHUB_SHA" >&2
+              exit 1
+            fi
+            echo "Reusing existing tag $version on this commit."
+          else
+            git tag "$version" "$GITHUB_SHA"
+            git push origin "$version"
+          fi
+      - name: Publish GitHub Release
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          zip_path="${{ steps.artifact.outputs.zip_path }}"
+          sha_path="${{ steps.artifact.outputs.sha_path }}"
+
+          if gh release view "$version" >/dev/null 2>&1; then
+            gh release upload "$version" "$zip_path" "$sha_path" --clobber
+          else
+            gh release create "$version" "$zip_path" "$sha_path" \
+              --title "Sweat Streaks $version" \
+              --generate-notes
+          fi
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: anthonylu23/homebrew-tap
+          path: homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      - name: Update Homebrew cask
+        run: |
+          scripts/update-homebrew-cask.sh \
+            "${{ steps.version.outputs.version_number }}" \
+            "${{ steps.artifact.outputs.sha256 }}" \
+            homebrew-tap/Casks/sweat-streaks.rb
+      - name: Audit Homebrew cask
+        working-directory: homebrew-tap
+        run: brew audit --cask --strict Casks/sweat-streaks.rb
+      - name: Commit Homebrew cask update
+        working-directory: homebrew-tap
+        run: |
+          version="${{ steps.version.outputs.version }}"
+
+          if git diff --quiet -- Casks/sweat-streaks.rb; then
+            echo "Homebrew cask already matches $version."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/sweat-streaks.rb
+          git commit -m "Update Sweat Streaks to $version"
+          git push
