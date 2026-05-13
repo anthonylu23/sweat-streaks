@@ -13,7 +13,7 @@ It keeps activity data on your Mac, stores GitHub tokens in Keychain, and infers
 ## Install
 
 ### GitHub Release
-1. Download `Sweat-Streaks-v0.1.0-macos-arm64.zip` from the latest GitHub Release.
+1. Download `Sweat-Streaks-v0.1.1-macos-arm64.zip` from the latest GitHub Release.
 2. Unzip it and move `Sweat Streaks.app` to `/Applications`.
 3. Launch the app. Because the first release is not notarized, macOS may require approval in System Settings -> Privacy & Security.
 
@@ -94,7 +94,7 @@ swift build
 swift test
 swift build -c release --product SweatStreaksApp
 script/build_and_run.sh --verify
-scripts/package-release.sh v0.1.0
+scripts/package-release.sh v0.1.1
 ```
 
 See `docs/releasing.md` for the release checklist and Homebrew cask update flow.

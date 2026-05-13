@@ -1,8 +1,8 @@
 # Next Steps
 
 ## Immediate Validation
-- Rebuild and republish the v0.1.0 macOS zip with the fixed bundle signing step, then update the Homebrew cask checksum and reinstall from the tap.
-- Verify a fresh Homebrew install no longer reports `code has no resources but signature indicates they must be present` from `codesign --verify --deep --strict`.
+- Verify a fresh Homebrew install of v0.1.1 no longer reports `code has no resources but signature indicates they must be present` from `codesign --verify --deep --strict`.
+- Verify a fresh Homebrew install of v0.1.1 runs as menu-bar-only without a Dock icon.
 - Capture public screenshots from a clean profile with placeholder account names and no personal paths or provider errors.
 - Run the app with real GitHub and LeetCode usernames.
 - Verify GitHub and LeetCode tracking toggles suppress sync while preserving saved usernames/PAT state, then resume syncing when re-enabled.
