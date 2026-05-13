@@ -28,7 +28,7 @@ brew install --cask sweat-streaks
 git clone https://github.com/anthonylu23/sweat-streaks.git
 cd sweat-streaks
 swift build
-swift run SweatStreaksApp
+script/build_and_run.sh
 ```
 
 ## Screenshots
@@ -53,6 +53,7 @@ GitHub PATs are stored in macOS Keychain and are not stored in SQLite or loaded 
 4. Click `Save`, then `Refresh Now`.
 
 LeetCode sync uses LeetCode's public, unofficial GraphQL profile calendar. If that response shape changes, the app keeps last known values and surfaces the provider error.
+Submission-calendar epoch keys are interpreted as UTC day buckets so local timezones do not shift activity to the previous day.
 
 ### Local AI Tools
 1. Open app settings.
@@ -66,9 +67,11 @@ Default scan locations:
 - Cursor: `~/.cursor` and `~/Library/Application Support/Cursor`
 
 Cursor scans local AI usage evidence such as transcript metadata, worker logs, chat-store metadata, Cursor AI-tracking SQLite state, and global AI daily-stat keys when present.
+JSONL logs are streamed line by line and only timestamp fields are parsed for active-day detection.
 
 ## Sync Behavior
 - Launch, manual, and timer refreshes run configured providers independently.
+- Fetch windows cover the full local day through 23:59:59.
 - Disabled provider tracking preserves saved usernames/tokens/paths but omits that provider from sync and Combined streak derivation.
 - Retry policy uses up to 3 attempts with backoff.
 - Rate-limited providers enter a cooldown state.
@@ -90,6 +93,7 @@ Cursor scans local AI usage evidence such as transcript metadata, worker logs, c
 swift build
 swift test
 swift build -c release --product SweatStreaksApp
+script/build_and_run.sh --verify
 scripts/package-release.sh v0.1.0
 ```
 

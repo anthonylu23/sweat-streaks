@@ -2,7 +2,9 @@
 
 ## Modules
 - `scripts/package-release.sh`
-  - Release helper that builds the SwiftPM executable, assembles a macOS `.app`, generates an app icon, ad-hoc signs the bundle, and zips it for GitHub Releases/Homebrew.
+  - Release helper that builds the SwiftPM executable, assembles an unsigned macOS `.app`, generates an app icon, and zips it for GitHub Releases/Homebrew.
+- `script/build_and_run.sh`
+  - Local development helper that stages a debug `.app` bundle from SwiftPM output and launches that bundle instead of running the GUI executable directly.
 - `SweatStreaksApp`
   - SwiftUI menu bar scene (`MenuBarExtra` with window-style presentation), AppKit-backed settings window, popover content, settings view, app model, provider registry, notification engine, and sync engine.
 - `SweatStreaksCore`
@@ -71,12 +73,15 @@ SweatStreaksCore
 - Current streak display uses an app-level end-of-day grace anchor: provider inactive/unknown today calculates current streak through yesterday, while manual inactive overrides anchor to today and reset immediately.
 - GitHub PAT is stored in Keychain, not in SQLite settings, and is not loaded back into the settings UI.
 - LeetCode uses the public profile calendar and fills fetched-but-missing days as inactive.
+- LeetCode submission-calendar epoch keys are interpreted as UTC day buckets before mapping to `LocalDay`.
 - Codex uses local JSONL logs under the configured Codex path, defaulting to `~/.codex`, and scans `sessions` plus `archived_sessions`.
 - Claude Code uses local JSONL logs under the configured Claude Code path, defaulting to `~/.claude`, and scans `history.jsonl` plus `projects`.
 - Cursor uses AI usage evidence under configured Cursor paths, defaulting to `~/.cursor` and `~/Library/Application Support/Cursor`, including local agent transcript metadata, worker logs, chat store metadata, `ai-tracking/ai-code-tracking.db`, and global `aiCodeTracking.dailyStats` keys.
 - Local providers map at least one valid timestamp/evidence item in the requested local day to `active`; fetched days with no evidence are `inactive`.
-- Codex, Claude Code, and Cursor auth token values, prompt text, chat text, and edited file contents are not read, persisted, displayed, or transmitted.
+- Codex and Claude Code JSONL files are streamed line by line for timestamp parsing.
+- Codex, Claude Code, and Cursor auth token values, prompt text, chat text, and edited file contents are not persisted, displayed, or transmitted.
 - Provider days outside the requested local-day fetch window are ignored before persistence, and stale future rows are deleted on refresh, to avoid UTC spillover rows.
+- Provider fetch windows cover complete local days through 23:59:59.
 - SQLite database files are restricted to owner-only permissions (`0600`).
 - Provider requests are HTTPS-only.
 - Provider error summaries are sanitized before they are persisted or displayed.
@@ -94,7 +99,7 @@ SweatStreaksCore
 6. LeetCode provider calls the public profile calendar query and maps submission-calendar days:
    - timestamp count `> 0` -> `active`
    - fetched days missing from the submission calendar -> `inactive`
-7. Codex and Claude Code providers scan local JSONL log timestamps and map days:
+7. Codex and Claude Code providers stream local JSONL log timestamps and map days:
    - one or more timestamps in a local day -> `active`
    - fetched days with no timestamps -> `inactive`
 8. Cursor provider scans local AI usage timestamps/metadata and maps days:
@@ -109,12 +114,12 @@ SweatStreaksCore
    - manual inactive today -> today
    - Combined manual inactive reset if either source has a manual inactive override today
 13. App model publishes square timelines for GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined activity; the popover currently displays the latest 13 weeks.
-14. Notification engine sends at most one local risk notification per day when combined is not active after the configured reminder hour.
+14. Notification engine sends at most one local risk notification per day when combined is not active after the configured reminder hour. Notification APIs are skipped when the executable is not running from an `.app` bundle, so direct SwiftPM executable launches do not crash.
 
 ## Distribution Flow
 1. `scripts/package-release.sh vX.Y.Z` builds `SweatStreaksApp` in release mode.
 2. The script assembles `Sweat Streaks.app` with the SwiftPM executable, SwiftPM resource bundle, generated `Info.plist`, and `.icns` icon.
-3. The unsigned app is zipped as `Sweat-Streaks-vX.Y.Z-macos-arm64.zip`.
+3. The unsigned app is zipped as `Sweat-Streaks-vX.Y.Z-macos-$(uname -m).zip`.
 4. GitHub Releases host the zip, and the Homebrew cask in `anthonylu23/homebrew-tap` installs that same artifact by version and SHA-256.
 5. App-support directory and SQLite names intentionally stay `SweatStreaks` / `sweat_streaks.sqlite` so open-source repo renaming does not migrate local data.
 

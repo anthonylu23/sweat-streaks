@@ -182,3 +182,24 @@
   - Homebrew cask install validation completed with `brew install --cask anthonylu23/tap/sweat-streaks`.
   - The tracked `.claude/settings.local.json` file contained only a local test permission and no credentials before it was untracked.
   - Capture sanitized public screenshots from a clean profile.
+
+## Phase 15: Release Readiness Fixes
+- Status: Complete
+- Completed:
+  - Guarded macOS notification scheduling so direct SwiftPM executable launches do not crash outside an `.app` bundle.
+  - Added `script/build_and_run.sh` and Codex Run action metadata for launching a SwiftPM-built GUI app through a staged debug `.app` bundle.
+  - Changed sync fetch ranges to cover complete local days through 23:59:59.
+  - Interpreted LeetCode submission-calendar epoch keys as UTC day buckets so US timezones do not shift activity to the prior local day.
+  - Streamed local JSONL scanning line by line instead of loading entire agent log files into memory.
+  - Replaced synthetic first-run sample activity with explicit unknown activity state.
+  - Made release packaging use SwiftPM's reported release binary path and host architecture in artifact names.
+  - Extended CI to run release build and package zip validation.
+  - Added regression tests for notification non-bundle safety, late-night activity range coverage, LeetCode UTC day buckets, and empty first-run state.
+- Validation:
+  - `swift build`
+  - `swift test`
+  - `swift build -c release --product SweatStreaksApp`
+  - `scripts/package-release.sh v0.1.0`
+  - `unzip -t dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-arm64.zip`
+  - `script/build_and_run.sh --verify`
+  - `swift run SweatStreaksApp` smoke check

@@ -1,6 +1,6 @@
 # Releasing
 
-Sweat Streaks currently ships as an unsigned macOS arm64 app bundle in a zip attached to GitHub Releases. Homebrew installs use the same zip through the `anthonylu23/homebrew-tap` cask.
+Sweat Streaks currently ships as an unsigned macOS app bundle in a zip attached to GitHub Releases. Homebrew installs use the same zip through the `anthonylu23/homebrew-tap` cask.
 
 ## Prerequisites
 - macOS 13+
@@ -19,15 +19,16 @@ scripts/package-release.sh v0.1.0
 
 The packaging script writes:
 - `dist/v0.1.0/Sweat Streaks.app`
-- `dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-arm64.zip`
-- `dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-arm64.zip.sha256`
+- `dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip`
+- `dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip.sha256`
 
 The app is not Developer ID signed or notarized. Users may need to approve the first launch in macOS Privacy & Security.
 
 ## Validate the Artifact
 ```bash
 plutil -lint "dist/v0.1.0/Sweat Streaks.app/Contents/Info.plist"
-unzip -t dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-arm64.zip
+unzip -t "dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip"
+script/build_and_run.sh --verify
 ```
 
 Launch the app once from the unzipped bundle before publishing.
@@ -37,7 +38,7 @@ Launch the app once from the unzipped bundle before publishing.
 git tag v0.1.0
 git push origin main --tags
 gh release create v0.1.0 \
-  dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-arm64.zip \
+  "dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip" \
   --title "Sweat Streaks v0.1.0" \
   --notes-file docs/releases/v0.1.0.md
 ```
@@ -48,7 +49,7 @@ Use a draft release if the artifact has not been manually launched yet.
 The cask lives in `anthonylu23/homebrew-tap`:
 
 ```bash
-SHA256=$(cut -d ' ' -f 1 dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-arm64.zip.sha256)
+SHA256=$(cut -d ' ' -f 1 "dist/v0.1.0/Sweat-Streaks-v0.1.0-macos-$(uname -m).zip.sha256")
 ```
 
 Update `Casks/sweat-streaks.rb` with the new version and checksum, then run:

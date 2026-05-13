@@ -6,10 +6,10 @@
 - Verify GitHub and LeetCode tracking toggles suppress sync while preserving saved usernames/PAT state, then resume syncing when re-enabled.
 - Verify Cursor tracking against your real local Cursor AI history and confirm chat/agent/code-assist activity matches the streak behavior you want.
 - Verify Codex, Claude Code, and Cursor custom path settings against real alternate directories, including the Cursor app-support path.
-- Verify `Start on login` registers and unregisters the SwiftPM-launched app in macOS Login Items on a real user account.
+- Verify `Start on login` registers and unregisters the bundled app in macOS Login Items on a real user account.
 - Verify the compact popover on a real menu bar display with all providers enabled, especially segmented-control label fit and heatmap month-label spacing now that Cursor adds a sixth source.
 - Verify LeetCode's public calendar returns expected recent days for the target account.
-- Confirm macOS notification permission flow from the SwiftPM-launched app.
+- Confirm macOS notification permission flow from a bundled app launch.
 
 ## MVP Hardening
 - Add Developer ID signing, hardened runtime, notarization, and universal macOS builds.

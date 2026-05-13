@@ -6,7 +6,7 @@ Thanks for helping improve Sweat Streaks.
 ```bash
 swift build
 swift test
-swift run SweatStreaksApp
+script/build_and_run.sh
 ```
 
 ## Expectations
