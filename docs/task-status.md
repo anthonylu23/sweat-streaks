@@ -316,17 +316,16 @@
   - Post to personal networks and small macOS/side-project communities before broader launch channels.
 
 ## Phase 22: Local Launch Fix
-- Status: In Progress
+- Status: Complete
 - Completed:
   - Diagnosed local launch failure as three related packaging issues: the Homebrew app was quarantined and rejected by Gatekeeper, the debug app bundle was assembled without re-signing after resources and `Info.plist` were added, and runtime icon loading depended on SwiftPM's `Bundle.module` resource lookup from inside a packaged `.app`.
   - Updated `AppIconManager` to load icon PNGs from the app bundle's `Contents/Resources/AppIcon` first, falling back to `Bundle.module` for source/debug contexts.
   - Updated `script/build_and_run.sh` to copy app icon resources into the debug `.app`, clear extended attributes, ad-hoc sign the completed bundle, and verify it before launch.
   - Updated release packaging to copy app icon resources into the release `.app` before signing and zipping.
   - Built and launched a fixed local release package from `dist/v0.1.5-local/Sweat Streaks.app`.
+  - Published v0.1.5 through the automated main-branch release flow and upgraded the Homebrew cask to the fixed release.
+  - Cleared local quarantine on the installed v0.1.5 app and confirmed `/Applications/Sweat Streaks.app` launches through `open`.
   - Documented the local quarantine workaround and debug-bundle signing behavior.
-- Remaining:
-  - Publish the fix through the automated main-branch release flow.
-  - Upgrade the installed Homebrew cask to the fixed release and verify `/Applications/Sweat Streaks.app` launches without the resource-bundle crash.
 - Validation:
   - `bash -n script/build_and_run.sh`
   - `bash -n scripts/package-release.sh`
@@ -338,3 +337,10 @@
   - `unzip -t dist/v0.1.5-local/Sweat-Streaks-v0.1.5-local-macos-arm64.zip`
   - `codesign --verify --deep --strict --verbose=2 "dist/v0.1.5-local/Sweat Streaks.app"`
   - `open -n "dist/v0.1.5-local/Sweat Streaks.app"` followed by `pgrep` confirmed `SweatStreaksApp` was running.
+  - GitHub Actions run `26383015258` passed Swift validation and published v0.1.5.
+  - `brew update && brew upgrade --cask sweat-streaks`
+  - `codesign --verify --deep --strict --verbose=2 "/Applications/Sweat Streaks.app"`
+  - `plutil -extract CFBundleShortVersionString raw "/Applications/Sweat Streaks.app/Contents/Info.plist"` returned `0.1.5`.
+  - `find "/Applications/Sweat Streaks.app/Contents/Resources" -maxdepth 2 -type f -name 'app-icon-*.png'` confirmed the packaged app icon resources are present.
+  - `xattr -dr com.apple.quarantine "/Applications/Sweat Streaks.app"`
+  - `open -a "/Applications/Sweat Streaks.app"` followed by `pgrep` confirmed `SweatStreaksApp` was running.
