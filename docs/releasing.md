@@ -40,11 +40,13 @@ The packaging script writes:
 - `dist/$VERSION/Sweat-Streaks-$VERSION-macos-$(uname -m).zip`
 - `dist/$VERSION/Sweat-Streaks-$VERSION-macos-$(uname -m).zip.sha256`
 
-The packaging script ad-hoc signs the completed `.app` bundle after writing
-`Info.plist`, resources, and icons. This seals the bundle resources so macOS
-does not reject the app as damaged because of an invalid bundle signature.
+The packaging script copies app icon resources into the app's normal
+`Contents/Resources` tree, then ad-hoc signs the completed `.app` bundle after
+writing `Info.plist`, resources, and icons. This seals the bundle resources so
+macOS does not reject the app as damaged because of an invalid bundle signature.
+The local debug run script follows the same pattern for `dist/debug/Sweat Streaks.app`.
 
-The app is not Developer ID signed or notarized. Users may need to approve the first launch in macOS Privacy & Security or install the cask with Homebrew quarantine disabled for personal/local builds.
+The app is not Developer ID signed or notarized. Users may need to approve the first launch in macOS Privacy & Security, install the cask with Homebrew quarantine disabled, or clear quarantine with `xattr -dr com.apple.quarantine /Applications/Sweat\ Streaks.app` for personal/local builds.
 
 ## Validate the Artifact
 ```bash

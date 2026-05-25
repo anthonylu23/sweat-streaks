@@ -117,6 +117,7 @@ See `docs/releasing.md` for the automated main-branch release flow, required Hom
 - `GitHub data is stale`: no successful sync in more than 24 hours.
 - Use Settings -> Provider Diagnostics to inspect recent provider sync runs, cooldown/stale state, and local evidence counts.
 - If unsigned builds are blocked by Gatekeeper, approve the app in System Settings -> Privacy & Security.
+- For a personal local install that remains blocked after approval, clear quarantine with `xattr -dr com.apple.quarantine /Applications/Sweat\ Streaks.app`, then open it again.
 - If a Homebrew install says the app is damaged, verify the bundle signature with `codesign --verify --deep --strict --verbose=2 /Applications/Sweat\ Streaks.app`. A `code has no resources but signature indicates they must be present` error means the release zip was built without signing the completed app bundle.
 
 ## Project Structure

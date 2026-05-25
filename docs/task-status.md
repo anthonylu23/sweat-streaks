@@ -314,3 +314,27 @@
 - Remaining:
   - Review screenshot contents before broad posting and replace any image that exposes unwanted personal account details.
   - Post to personal networks and small macOS/side-project communities before broader launch channels.
+
+## Phase 22: Local Launch Fix
+- Status: In Progress
+- Completed:
+  - Diagnosed local launch failure as three related packaging issues: the Homebrew app was quarantined and rejected by Gatekeeper, the debug app bundle was assembled without re-signing after resources and `Info.plist` were added, and runtime icon loading depended on SwiftPM's `Bundle.module` resource lookup from inside a packaged `.app`.
+  - Updated `AppIconManager` to load icon PNGs from the app bundle's `Contents/Resources/AppIcon` first, falling back to `Bundle.module` for source/debug contexts.
+  - Updated `script/build_and_run.sh` to copy app icon resources into the debug `.app`, clear extended attributes, ad-hoc sign the completed bundle, and verify it before launch.
+  - Updated release packaging to copy app icon resources into the release `.app` before signing and zipping.
+  - Built and launched a fixed local release package from `dist/v0.1.5-local/Sweat Streaks.app`.
+  - Documented the local quarantine workaround and debug-bundle signing behavior.
+- Remaining:
+  - Publish the fix through the automated main-branch release flow.
+  - Upgrade the installed Homebrew cask to the fixed release and verify `/Applications/Sweat Streaks.app` launches without the resource-bundle crash.
+- Validation:
+  - `bash -n script/build_and_run.sh`
+  - `bash -n scripts/package-release.sh`
+  - `script/build_and_run.sh --verify`
+  - `codesign --verify --deep --strict --verbose=2 "dist/debug/Sweat Streaks.app"`
+  - `swift build`
+  - `swift test`
+  - `scripts/package-release.sh v0.1.5-local`
+  - `unzip -t dist/v0.1.5-local/Sweat-Streaks-v0.1.5-local-macos-arm64.zip`
+  - `codesign --verify --deep --strict --verbose=2 "dist/v0.1.5-local/Sweat Streaks.app"`
+  - `open -n "dist/v0.1.5-local/Sweat Streaks.app"` followed by `pgrep` confirmed `SweatStreaksApp` was running.

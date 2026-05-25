@@ -26,7 +26,11 @@ final class AppIconManager: NSObject {
     private func applyIcon() {
         let resourceName = usesDarkAppearance ? "app-icon-dark" : "app-icon-light"
         guard
-            let url = Bundle.module.url(
+            let url = Bundle.main.url(
+                forResource: resourceName,
+                withExtension: "png",
+                subdirectory: "AppIcon"
+            ) ?? Bundle.module.url(
                 forResource: resourceName,
                 withExtension: "png",
                 subdirectory: "AppIcon"

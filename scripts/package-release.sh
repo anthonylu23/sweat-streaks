@@ -45,10 +45,12 @@ else
 fi
 
 ICON_SOURCE="$ROOT_DIR/Sources/SweatStreaksApp/Resources/AppIcon/app-icon-light.png"
+ICON_SOURCE_DIR="$ROOT_DIR/Sources/SweatStreaksApp/Resources/AppIcon"
 if [[ ! -f "$ICON_SOURCE" ]]; then
   echo "Missing icon source: $ICON_SOURCE" >&2
   exit 1
 fi
+cp -R "$ICON_SOURCE_DIR" "$RESOURCES_DIR/AppIcon"
 
 sips -z 16 16 "$ICON_SOURCE" --out "$ICONSET_DIR/icon_16x16.png" >/dev/null
 sips -z 32 32 "$ICON_SOURCE" --out "$ICONSET_DIR/icon_16x16@2x.png" >/dev/null

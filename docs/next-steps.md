@@ -24,6 +24,7 @@
 ## MVP Hardening
 - Add Developer ID signing, hardened runtime, notarization, and universal macOS builds.
 - Decide whether automated releases should eventually update notarized/universal artifacts instead of the current unsigned arm64 zip.
+- Decide whether to keep documenting quarantine-clearing as the local install workaround until notarization is available.
 - Add a richer manual override editor for arbitrary dates, custom notes, and audit review.
 - Add UI smoke tests for settings window focus/text entry, settings save, refresh, provider-state display, and override toggles.
 - Validate the Settings provider diagnostics section against real provider data and decide whether it should move into a dedicated window.

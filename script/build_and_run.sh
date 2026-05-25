@@ -9,6 +9,7 @@ MIN_SYSTEM_VERSION="13.0"
 RESOURCE_BUNDLE="sweat-streaks_SweatStreaksApp.bundle"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+APP_ICON_SOURCE="$ROOT_DIR/Sources/SweatStreaksApp/Resources/AppIcon"
 DIST_DIR="$ROOT_DIR/dist/debug"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
@@ -30,6 +31,10 @@ chmod +x "$APP_BINARY"
 
 if [[ -d "$BUILD_DIR/$RESOURCE_BUNDLE" ]]; then
   cp -R "$BUILD_DIR/$RESOURCE_BUNDLE" "$APP_RESOURCES/$RESOURCE_BUNDLE"
+fi
+
+if [[ -d "$APP_ICON_SOURCE" ]]; then
+  cp -R "$APP_ICON_SOURCE" "$APP_RESOURCES/AppIcon"
 fi
 
 cat >"$INFO_PLIST" <<PLIST
@@ -54,6 +59,10 @@ cat >"$INFO_PLIST" <<PLIST
 </dict>
 </plist>
 PLIST
+
+xattr -cr "$APP_BUNDLE"
+codesign --force --deep --sign - "$APP_BUNDLE"
+codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
 
 open_app() {
   /usr/bin/open -n "$APP_BUNDLE"
