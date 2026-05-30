@@ -84,6 +84,47 @@ final class CursorProviderTests: XCTestCase {
         XCTAssertEqual(result.days[LocalDay(year: 2026, month: 5, day: 14)], .active)
     }
 
+    func testCursorSQLiteTrackingToleratesMissingOptionalColumnsAndTables() async throws {
+        let fixture = try makeFixture()
+        try createMinimalAITrackingDatabase(
+            at: fixture.cursor.appendingPathComponent("ai-tracking/ai-code-tracking.db"),
+            createdAt: Self.date(year: 2026, month: 5, day: 13, hour: 9)
+        )
+
+        let provider = CursorProvider(
+            cursorDirectory: fixture.cursor,
+            applicationSupportDirectory: fixture.applicationSupport
+        )
+        let result = try await provider.fetchActivityDays(
+            range: Self.date(year: 2026, month: 5, day: 12)...Self.date(year: 2026, month: 5, day: 14, hour: 23)
+        )
+
+        XCTAssertNil(result.warning)
+        XCTAssertEqual(result.days[LocalDay(year: 2026, month: 5, day: 12)], .inactive)
+        XCTAssertEqual(result.days[LocalDay(year: 2026, month: 5, day: 13)], .active)
+        XCTAssertEqual(result.days[LocalDay(year: 2026, month: 5, day: 14)], .inactive)
+    }
+
+    func testCursorDeletedFileEvidenceWorksWithoutHashTable() async throws {
+        let fixture = try makeFixture()
+        try createDeletedFileOnlyTrackingDatabase(
+            at: fixture.cursor.appendingPathComponent("ai-tracking/ai-code-tracking.db"),
+            deletedAt: Self.date(year: 2026, month: 5, day: 14, hour: 18)
+        )
+
+        let provider = CursorProvider(
+            cursorDirectory: fixture.cursor,
+            applicationSupportDirectory: fixture.applicationSupport
+        )
+        let result = try await provider.fetchActivityDays(
+            range: Self.date(year: 2026, month: 5, day: 13)...Self.date(year: 2026, month: 5, day: 14, hour: 23)
+        )
+
+        XCTAssertNil(result.warning)
+        XCTAssertEqual(result.days[LocalDay(year: 2026, month: 5, day: 13)], .inactive)
+        XCTAssertEqual(result.days[LocalDay(year: 2026, month: 5, day: 14)], .active)
+    }
+
     func testMissingCursorEvidenceReturnsSanitizedWarning() async throws {
         let fixture = try makeFixture()
         let start = Self.date(year: 2026, month: 5, day: 12, hour: 12)
@@ -181,6 +222,52 @@ final class CursorProviderTests: XCTestCase {
             try db.execute(
                 sql: "INSERT INTO ai_code_hashes (hash, source, timestamp, createdAt) VALUES ('hash', 'composer', ?, ?)",
                 arguments: [milliseconds, milliseconds]
+            )
+        }
+    }
+
+    private func createMinimalAITrackingDatabase(at url: URL, createdAt: Date) throws {
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let queue = try DatabaseQueue(path: url.path)
+        let milliseconds = Int64(createdAt.timeIntervalSince1970 * 1_000)
+        try queue.write { db in
+            try db.execute(sql: """
+                CREATE TABLE ai_code_hashes (
+                  hash TEXT PRIMARY KEY,
+                  source TEXT NOT NULL,
+                  createdAt INTEGER NOT NULL
+                );
+            """)
+            try db.execute(sql: """
+                CREATE TABLE ai_deleted_files (
+                  gitPath TEXT NOT NULL,
+                  deletedAt INTEGER
+                );
+            """)
+            try db.execute(
+                sql: "INSERT INTO ai_code_hashes (hash, source, createdAt) VALUES ('hash', 'composer', ?)",
+                arguments: [milliseconds]
+            )
+            try db.execute(
+                sql: "INSERT INTO ai_deleted_files (gitPath, deletedAt) VALUES ('unused.swift', NULL)"
+            )
+        }
+    }
+
+    private func createDeletedFileOnlyTrackingDatabase(at url: URL, deletedAt: Date) throws {
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let queue = try DatabaseQueue(path: url.path)
+        let milliseconds = Int64(deletedAt.timeIntervalSince1970 * 1_000)
+        try queue.write { db in
+            try db.execute(sql: """
+                CREATE TABLE ai_deleted_files (
+                  gitPath TEXT NOT NULL,
+                  deletedAt INTEGER NOT NULL
+                );
+            """)
+            try db.execute(
+                sql: "INSERT INTO ai_deleted_files (gitPath, deletedAt) VALUES ('deleted.swift', ?)",
+                arguments: [milliseconds]
             )
         }
     }

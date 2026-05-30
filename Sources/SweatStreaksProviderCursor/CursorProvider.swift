@@ -213,10 +213,7 @@ public struct CursorProvider: ActivityProvider {
             var days: Set<LocalDay> = []
 
             for column in ["createdAt", "timestamp"] {
-                let timestamps = try Int64.fetchAll(
-                    db,
-                    sql: "SELECT \(column) FROM ai_code_hashes WHERE \(column) IS NOT NULL"
-                )
+                let timestamps = try int64Values(in: "ai_code_hashes", column: column, db: db)
                 for timestamp in timestamps {
                     let day = LocalDay.from(date: date(fromEpochMilliseconds: timestamp), in: timeZone)
                     if localRange.contains(day) {
@@ -225,7 +222,7 @@ public struct CursorProvider: ActivityProvider {
                 }
             }
 
-            let deletedAtValues = try Int64.fetchAll(db, sql: "SELECT deletedAt FROM ai_deleted_files")
+            let deletedAtValues = try int64Values(in: "ai_deleted_files", column: "deletedAt", db: db)
             for timestamp in deletedAtValues {
                 let day = LocalDay.from(date: date(fromEpochMilliseconds: timestamp), in: timeZone)
                 if localRange.contains(day) {
@@ -243,6 +240,7 @@ public struct CursorProvider: ActivityProvider {
     ) -> Set<LocalDay> {
         let dbURL = applicationSupportDirectory.appendingPathComponent("User/globalStorage/state.vscdb", isDirectory: false)
         return readSQLiteDatabase(at: dbURL) { db in
+            guard try tableColumns("ItemTable", db: db).contains("key") else { return [] }
             let keys = try String.fetchAll(
                 db,
                 sql: "SELECT key FROM ItemTable WHERE key LIKE 'aiCodeTracking.dailyStats.%'"
@@ -254,14 +252,16 @@ public struct CursorProvider: ActivityProvider {
     private static func aiTrackingDatabaseHasRows(cursorDirectory: URL) -> Bool {
         let dbURL = cursorDirectory.appendingPathComponent("ai-tracking/ai-code-tracking.db", isDirectory: false)
         return readSQLiteDatabase(at: dbURL) { db in
-            (try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM ai_code_hashes") ?? 0) > 0
+            try rowCount(in: "ai_code_hashes", db: db) > 0
+                || rowCount(in: "ai_deleted_files", db: db) > 0
         } ?? false
     }
 
     private static func globalStateDatabaseHasDailyStats(applicationSupportDirectory: URL) -> Bool {
         let dbURL = applicationSupportDirectory.appendingPathComponent("User/globalStorage/state.vscdb", isDirectory: false)
         return readSQLiteDatabase(at: dbURL) { db in
-            (try Int.fetchOne(
+            guard try tableColumns("ItemTable", db: db).contains("key") else { return false }
+            return (try Int.fetchOne(
                 db,
                 sql: "SELECT COUNT(*) FROM ItemTable WHERE key LIKE 'aiCodeTracking.dailyStats.%'"
             ) ?? 0) > 0
@@ -283,19 +283,16 @@ public struct CursorProvider: ActivityProvider {
 
     private static func aiTrackingDatabaseEvidence(at url: URL, timeZone: TimeZone) -> (count: Int, latestDay: LocalDay?) {
         readSQLiteDatabase(at: url) { db in
-            let hashCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM ai_code_hashes") ?? 0
-            let deletedCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM ai_deleted_files") ?? 0
+            let hashCount = try rowCount(in: "ai_code_hashes", db: db)
+            let deletedCount = try rowCount(in: "ai_deleted_files", db: db)
             var latestDay: LocalDay?
 
             for column in ["createdAt", "timestamp"] {
-                let timestamps = try Int64.fetchAll(
-                    db,
-                    sql: "SELECT \(column) FROM ai_code_hashes WHERE \(column) IS NOT NULL"
-                )
+                let timestamps = try int64Values(in: "ai_code_hashes", column: column, db: db)
                 latestDay = laterDay(latestDay, latestDayFromEpochMilliseconds(timestamps, timeZone: timeZone))
             }
 
-            let deletedTimestamps = try Int64.fetchAll(db, sql: "SELECT deletedAt FROM ai_deleted_files")
+            let deletedTimestamps = try int64Values(in: "ai_deleted_files", column: "deletedAt", db: db)
             latestDay = laterDay(latestDay, latestDayFromEpochMilliseconds(deletedTimestamps, timeZone: timeZone))
 
             return (hashCount + deletedCount, latestDay)
@@ -304,6 +301,7 @@ public struct CursorProvider: ActivityProvider {
 
     private static func globalStateDatabaseEvidence(at url: URL) -> (count: Int, latestDay: LocalDay?) {
         readSQLiteDatabase(at: url) { db in
+            guard try tableColumns("ItemTable", db: db).contains("key") else { return (0, nil) }
             let keys = try String.fetchAll(
                 db,
                 sql: "SELECT key FROM ItemTable WHERE key LIKE 'aiCodeTracking.dailyStats.%'"
@@ -346,5 +344,33 @@ public struct CursorProvider: ActivityProvider {
 
     private static func localDayRange(for range: ClosedRange<Date>, in timeZone: TimeZone) -> ClosedRange<LocalDay> {
         LocalDay.from(date: range.lowerBound, in: timeZone)...LocalDay.from(date: range.upperBound, in: timeZone)
+    }
+
+    private static func int64Values(in table: String, column: String, db: Database) throws -> [Int64] {
+        let columns = try tableColumns(table, db: db)
+        guard columns.contains(column) else { return [] }
+        return try Int64.fetchAll(
+            db,
+            sql: "SELECT \(column) FROM \(table) WHERE \(column) IS NOT NULL"
+        )
+    }
+
+    private static func rowCount(in table: String, db: Database) throws -> Int {
+        guard try tableExists(table, db: db) else { return 0 }
+        return try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \(table)") ?? 0
+    }
+
+    private static func tableColumns(_ table: String, db: Database) throws -> Set<String> {
+        guard try tableExists(table, db: db) else { return [] }
+        let rows = try Row.fetchAll(db, sql: "PRAGMA table_info(\(table))")
+        return Set(rows.compactMap { row in row["name"] as String? })
+    }
+
+    private static func tableExists(_ table: String, db: Database) throws -> Bool {
+        try String.fetchOne(
+            db,
+            sql: "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+            arguments: [table]
+        ) != nil
     }
 }
