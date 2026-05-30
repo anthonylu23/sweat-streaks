@@ -29,6 +29,7 @@ commit instead of creating another patch version.
 ## Build the Release Zip
 ```bash
 VERSION=vX.Y.Z
+git fetch --force --tags origin
 swift test
 swift build
 swift build -c release --product SweatStreaksApp
@@ -41,10 +42,12 @@ The packaging script writes:
 - `dist/$VERSION/Sweat-Streaks-$VERSION-macos-$(uname -m).zip.sha256`
 
 The packaging script copies app icon resources into the app's normal
-`Contents/Resources` tree, then ad-hoc signs the completed `.app` bundle after
-writing `Info.plist`, resources, and icons. This seals the bundle resources so
-macOS does not reject the app as damaged because of an invalid bundle signature.
-The local debug run script follows the same pattern for `dist/debug/Sweat Streaks.app`.
+`Contents/Resources` tree, includes `LICENSE.txt` and
+`THIRD_PARTY_NOTICES.md`, then ad-hoc signs the completed `.app` bundle after
+writing `Info.plist`, resources, notices, and icons. This seals the bundle
+resources so macOS does not reject the app as damaged because of an invalid
+bundle signature. The local debug run script follows the same pattern for
+`dist/debug/Sweat Streaks.app`.
 
 The app is not Developer ID signed or notarized. Users may need to approve the first launch in macOS Privacy & Security, install the cask with Homebrew quarantine disabled, or clear quarantine with `xattr -dr com.apple.quarantine /Applications/Sweat\ Streaks.app` for personal/local builds.
 
@@ -52,6 +55,8 @@ The app is not Developer ID signed or notarized. Users may need to approve the f
 ```bash
 VERSION=vX.Y.Z
 plutil -lint "dist/$VERSION/Sweat Streaks.app/Contents/Info.plist"
+test -f "dist/$VERSION/Sweat Streaks.app/Contents/Resources/LICENSE.txt"
+test -f "dist/$VERSION/Sweat Streaks.app/Contents/Resources/THIRD_PARTY_NOTICES.md"
 codesign --verify --deep --strict --verbose=2 "dist/$VERSION/Sweat Streaks.app"
 unzip -t "dist/$VERSION/Sweat-Streaks-$VERSION-macos-$(uname -m).zip"
 script/build_and_run.sh --verify
@@ -65,6 +70,7 @@ incidents. Normal releases should come from pushes to `main`.
 
 ```bash
 VERSION=vX.Y.Z
+git fetch --force --tags origin
 git tag "$VERSION"
 git push origin main --tags
 gh release create "$VERSION" \

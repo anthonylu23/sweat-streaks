@@ -6,9 +6,9 @@
 - Defer Show HN/Product Hunt until at least one fresh install path is verified and early feedback confirms the setup flow is understandable.
 
 ## Completed Public Beta Validation
-- Fresh-installed the Homebrew cask at v0.1.3, verified bundle signature, confirmed `LSUIElement=true`, launched the installed app, and quit it cleanly.
+- Fresh-installed the Homebrew cask at v0.1.5, verified bundle signature, confirmed `LSUIElement=true`, launched the installed app, and quit it cleanly.
 - Confirmed the GitHub repository topics are present: `macos`, `swift`, `menubar`, `streaks`, `local-first`, `github`, `leetcode`, `codex`, `cursor`, `claude-code`.
-- Confirmed the latest GitHub Release and Homebrew cask both point at v0.1.3.
+- Confirmed the latest GitHub Release and Homebrew cask both point at v0.1.5.
 
 ## Immediate Validation
 - Run the app with real GitHub and LeetCode usernames.
@@ -25,6 +25,7 @@
 - Add Developer ID signing, hardened runtime, notarization, and universal macOS builds.
 - Decide whether automated releases should eventually update notarized/universal artifacts instead of the current unsigned arm64 zip.
 - Decide whether to keep documenting quarantine-clearing as the local install workaround until notarization is available.
+- Add a Code of Conduct and GitHub issue templates before inviting broader community contribution.
 - Add a richer manual override editor for arbitrary dates, custom notes, and audit review.
 - Add UI smoke tests for settings window focus/text entry, settings save, refresh, provider-state display, and override toggles.
 - Validate the Settings provider diagnostics section against real provider data and decide whether it should move into a dedicated window.

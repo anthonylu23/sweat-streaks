@@ -37,6 +37,9 @@ if [[ -d "$APP_ICON_SOURCE" ]]; then
   cp -R "$APP_ICON_SOURCE" "$APP_RESOURCES/AppIcon"
 fi
 
+cp "$ROOT_DIR/LICENSE" "$APP_RESOURCES/LICENSE.txt"
+cp "$ROOT_DIR/THIRD_PARTY_NOTICES.md" "$APP_RESOURCES/THIRD_PARTY_NOTICES.md"
+
 cat >"$INFO_PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

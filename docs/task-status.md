@@ -344,3 +344,33 @@
   - `find "/Applications/Sweat Streaks.app/Contents/Resources" -maxdepth 2 -type f -name 'app-icon-*.png'` confirmed the packaged app icon resources are present.
   - `xattr -dr com.apple.quarantine "/Applications/Sweat Streaks.app"`
   - `open -a "/Applications/Sweat Streaks.app"` followed by `pgrep` confirmed `SweatStreaksApp` was running.
+
+## Phase 23: Open Source Release Audit
+- Status: Complete for current audit
+- Completed:
+  - Audited tracked repository contents, docs, CI, release packaging, provider privacy boundaries, local/remote release state, GitHub repository visibility, latest GitHub Release, and Homebrew cask metadata.
+  - Confirmed the GitHub repository is public, MIT-licensed, on `main`, and has the expected discovery topics.
+  - Confirmed the latest GitHub Release and Homebrew cask both point at v0.1.5 with matching SHA-256.
+  - Fetched remote release tags locally so `scripts/next-release-version.sh HEAD` now resolves the next patch as `v0.1.6`.
+  - Added an explicit release-job tag fetch before computing the next version.
+  - Added `THIRD_PARTY_NOTICES.md` for GRDB's MIT notice and product trademark disclaimers.
+  - Updated debug and release bundle assembly to include `LICENSE.txt` and `THIRD_PARTY_NOTICES.md` in `Contents/Resources`.
+  - Hardened Cursor SQLite evidence scanning so missing optional Cursor tables/columns or null deleted-file timestamps do not discard other valid evidence.
+  - Added Cursor provider regression tests for schema drift and deleted-file-only tracking databases.
+  - Updated docs for current 16-week heatmap behavior, v0.1.5 public beta validation state, tag-fetch requirements, and packaged notices.
+- Validation:
+  - `swift test`
+  - `swift build`
+  - `swift build -c release --product SweatStreaksApp`
+  - `scripts/package-release.sh v0.1.6-audit`
+  - `plutil -lint "dist/v0.1.6-audit/Sweat Streaks.app/Contents/Info.plist"`
+  - `test -f "dist/v0.1.6-audit/Sweat Streaks.app/Contents/Resources/LICENSE.txt"`
+  - `test -f "dist/v0.1.6-audit/Sweat Streaks.app/Contents/Resources/THIRD_PARTY_NOTICES.md"`
+  - `codesign --verify --deep --strict --verbose=2 "dist/v0.1.6-audit/Sweat Streaks.app"`
+  - `unzip -t dist/v0.1.6-audit/Sweat-Streaks-v0.1.6-audit-macos-arm64.zip`
+  - `script/build_and_run.sh --verify`
+  - `swift run SweatStreaksApp` compile/launch check, then stopped after launch
+- Remaining:
+  - Developer ID signing, hardened runtime, notarization, and universal builds remain the main public-install polish items.
+  - Review committed screenshots once more before broad posting, because public assets can intentionally include account names but should not expose sensitive local paths or private provider errors.
+  - Consider adding a Code of Conduct and GitHub issue templates before inviting wider community contributions.

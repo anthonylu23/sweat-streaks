@@ -4,6 +4,8 @@ Sweat Streaks is a local-first macOS menu bar app for tracking daily activity st
 
 It keeps activity data on your Mac, stores GitHub tokens in Keychain, and infers local AI-tool activity from timestamps and metadata without storing prompt text, chat text, edited file contents, or auth tokens.
 
+Sweat Streaks is independent software and is not affiliated with GitHub, LeetCode, OpenAI, Anthropic, Cursor, or related product owners.
+
 ## Status
 - macOS 13+.
 - Swift 6.0+ for source builds.
@@ -135,9 +137,10 @@ See `docs/releasing.md` for the automated main-branch release flow, required Hom
 - `Tests`: core, persistence, app sync/UI, and provider tests.
 - `scripts/package-release.sh`: release app-bundle/zip packaging script.
 - `docs`: architecture, release, task-status, and next-step notes.
+- `THIRD_PARTY_NOTICES.md`: dependency license and trademark notices included in packaged app bundles.
 
 ## Contributing
 Issues and pull requests are welcome. Keep changes scoped, run `swift test`, and update README/docs when behavior, setup, architecture, or release process changes. See `CONTRIBUTING.md`.
 
 ## License
-MIT. See `LICENSE`.
+MIT. See `LICENSE`. Third-party dependency and trademark notices are in `THIRD_PARTY_NOTICES.md`.

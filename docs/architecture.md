@@ -114,20 +114,20 @@ SweatStreaksCore
    - provider inactive/unknown today -> yesterday
    - manual inactive today -> today
    - Combined manual inactive reset if either source has a manual inactive override today
-13. App model publishes square timelines for GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined activity; the popover currently displays the latest 13 weeks.
+13. App model publishes square timelines for GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined activity; the popover currently displays the latest 16 weeks.
 14. App model refreshes provider diagnostics after sync/settings changes and when Settings opens. Diagnostics include recent sync runs, provider state, and local evidence summaries for tracked local providers.
 15. Notification engine sends at most one local risk notification per day when combined is not active after the configured reminder hour. Notification APIs are skipped when the executable is not running from an `.app` bundle, so direct SwiftPM executable launches do not crash.
 
 ## Distribution Flow
 1. Pushes to `main` run GitHub Actions CI. After Swift validation passes, the release job computes the next stable patch tag with `scripts/next-release-version.sh`.
-2. `scripts/package-release.sh vX.Y.Z` builds `SweatStreaksApp` in release mode, assembles `Sweat Streaks.app` with the SwiftPM executable/resources, generated `Info.plist`, and `.icns` icon, then zips it as `Sweat-Streaks-vX.Y.Z-macos-$(uname -m).zip`.
+2. `scripts/package-release.sh vX.Y.Z` builds `SweatStreaksApp` in release mode, assembles `Sweat Streaks.app` with the SwiftPM executable/resources, license/notices, generated `Info.plist`, and `.icns` icon, then zips it as `Sweat-Streaks-vX.Y.Z-macos-$(uname -m).zip`.
 3. The release job creates or reuses the `vX.Y.Z` tag, publishes a GitHub Release with generated notes, and uploads the zip plus `.sha256`.
 4. The same job updates `Casks/sweat-streaks.rb` in `anthonylu23/homebrew-tap` with `scripts/update-homebrew-cask.sh`, audits it with Homebrew, and pushes the cask version/checksum commit.
 5. App-support directory and SQLite names intentionally stay `SweatStreaks` / `sweat_streaks.sqlite` so open-source repo renaming does not migrate local data.
 
 ## UI Windowing Notes
 - The menu bar extra uses `.menuBarExtraStyle(.window)` because its content contains controls and opens editable settings.
-- The popover displays compact 13-week calendar-style heatmaps for GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined activity inside a fixed-width, tightly padded menu-bar window. The heatmap card groups the source label, stats, and grid into a centered compact cluster so the small 13-week grid does not appear adrift in the full card width. Square data uses the same effective day statuses as streak metrics, including manual override effects, and month labels are suppressed at tight boundaries when adjacent labels would collide.
+- The popover displays compact 16-week calendar-style heatmaps for GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined activity inside a fixed-width, tightly padded menu-bar window. The heatmap card groups the source label, stats, and grid into a centered compact cluster so the small 16-week grid does not appear adrift in the full card width. Square data uses the same effective day statuses as streak metrics, including manual override effects, and month labels are suppressed at tight boundaries when adjacent labels would collide.
 - The popover enumerates `AppModel.trackedProviderSources` for provider status rows, source tabs, heatmap choices, and today overrides; disabled provider tracking hides that provider from the popover and returns a disabled selected source back to Combined.
 - The collapsed menu bar label is derived from the same published streak metrics and today statuses as the popover. It renders configurable icon-and-number pairs using shared source icons for GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined, while `MenuBarStreakDisplay` owns item selection and accessibility labels.
 - Provider-specific menu bar visibility controls are disabled when their corresponding provider tracking toggle is off. `AppModel` also coerces those visibility settings off before saving, and `MenuBarStreakDisplay` filters disabled tracking sources as a defensive guard against stale persisted settings.

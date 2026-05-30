@@ -52,6 +52,9 @@ if [[ ! -f "$ICON_SOURCE" ]]; then
 fi
 cp -R "$ICON_SOURCE_DIR" "$RESOURCES_DIR/AppIcon"
 
+cp "$ROOT_DIR/LICENSE" "$RESOURCES_DIR/LICENSE.txt"
+cp "$ROOT_DIR/THIRD_PARTY_NOTICES.md" "$RESOURCES_DIR/THIRD_PARTY_NOTICES.md"
+
 sips -z 16 16 "$ICON_SOURCE" --out "$ICONSET_DIR/icon_16x16.png" >/dev/null
 sips -z 32 32 "$ICON_SOURCE" --out "$ICONSET_DIR/icon_16x16@2x.png" >/dev/null
 sips -z 32 32 "$ICON_SOURCE" --out "$ICONSET_DIR/icon_32x32.png" >/dev/null
