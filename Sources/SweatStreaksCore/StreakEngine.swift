@@ -7,26 +7,26 @@ public enum CombinedStatusResolver {
                 .github: github,
                 .leetcode: leetcode
             ],
-            requiredSources: [.github, .leetcode]
+            includedSources: [.github, .leetcode]
         )
     }
 
     public static func derive(effectiveStatuses: [ActivitySource: DayStatus]) -> DayStatus {
-        derive(effectiveStatuses: effectiveStatuses, requiredSources: ActivitySource.combinedRequiredSources)
+        derive(effectiveStatuses: effectiveStatuses, includedSources: ActivitySource.defaultCombinedSources)
     }
 
     public static func derive(
         effectiveStatuses: [ActivitySource: DayStatus],
-        requiredSources: [ActivitySource]
+        includedSources: [ActivitySource]
     ) -> DayStatus {
-        guard !requiredSources.isEmpty else { return .unknown }
+        guard !includedSources.isEmpty else { return .unknown }
 
-        let requiredStatuses = requiredSources.map { effectiveStatuses[$0] ?? .unknown }
-        if requiredStatuses.contains(.inactive) {
-            return .inactive
-        }
-        if requiredStatuses.allSatisfy({ $0 == .active }) {
+        let includedStatuses = includedSources.map { effectiveStatuses[$0] ?? .unknown }
+        if includedStatuses.contains(.active) {
             return .active
+        }
+        if includedStatuses.allSatisfy({ $0 == .inactive }) {
+            return .inactive
         }
         return .unknown
     }

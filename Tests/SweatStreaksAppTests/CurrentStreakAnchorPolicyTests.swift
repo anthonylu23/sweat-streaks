@@ -180,6 +180,18 @@ final class CurrentStreakAnchorPolicyTests: XCTestCase {
         XCTAssertEqual(anchor, today)
     }
 
+    func testCombinedActiveTodayStillAnchorsToTodayWithInactiveSourceOverride() {
+        let anchor = CurrentStreakAnchorPolicy.anchorDay(
+            for: .combined,
+            today: today,
+            todayStatuses: [.combined: .active],
+            todayOverrides: [.leetcode: override(source: .leetcode, status: .inactive)],
+            in: timeZone
+        )
+
+        XCTAssertEqual(anchor, today)
+    }
+
     func testAfterMidnightYesterdayInactiveResetsEvenWithGraceAnchor() {
         let anchor = CurrentStreakAnchorPolicy.anchorDay(
             for: .github,

@@ -33,10 +33,14 @@ enum CurrentStreakAnchorPolicy {
         }
 
         if source == .combined {
-            if todayOverrides.values.contains(where: { $0.status == .inactive }) {
+            let combinedStatus = todayStatuses[.combined] ?? .unknown
+            if combinedStatus == .active {
                 return true
             }
-            return todayStatuses[.combined] == .active
+            if combinedStatus == .inactive && todayOverrides.values.contains(where: { $0.status == .inactive }) {
+                return true
+            }
+            return false
         }
 
         return todayStatuses[source] == .active

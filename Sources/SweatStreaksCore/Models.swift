@@ -9,7 +9,7 @@ public enum ActivitySource: String, Codable, CaseIterable, Sendable {
     case combined
 
     public static let currentProviderSources: [ActivitySource] = [.github, .leetcode, .codex, .claudeCode, .cursor]
-    public static let combinedRequiredSources: [ActivitySource] = currentProviderSources
+    public static let defaultCombinedSources: [ActivitySource] = currentProviderSources
 
     public var displayName: String {
         switch self {

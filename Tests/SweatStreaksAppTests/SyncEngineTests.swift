@@ -172,7 +172,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(state?.isStale, true)
     }
 
-    func testMultiProviderSyncDerivesCombinedAfterAllRequiredProvidersRun() async throws {
+    func testMultiProviderSyncDerivesCombinedWhenAnyIncludedProviderIsActive() async throws {
         let manager = try DatabaseManager(inMemory: true)
         let repository = SweatRepository(dbQueue: manager.dbQueue)
         let day = LocalDay(year: 2026, month: 2, day: 18)
@@ -184,7 +184,7 @@ final class SyncEngineTests: XCTestCase {
                 .success(
                     ProviderFetchResult(
                         source: .github,
-                        days: [day: .active],
+                        days: [day: .inactive],
                         fetchedRange: range,
                         rateLimitedUntil: nil,
                         authError: false,
@@ -226,7 +226,7 @@ final class SyncEngineTests: XCTestCase {
                 .success(
                     ProviderFetchResult(
                         source: .claudeCode,
-                        days: [day: .active],
+                        days: [day: .inactive],
                         fetchedRange: range,
                         rateLimitedUntil: nil,
                         authError: false,
@@ -240,7 +240,7 @@ final class SyncEngineTests: XCTestCase {
                 .success(
                     ProviderFetchResult(
                         source: .cursor,
-                        days: [day: .active],
+                        days: [day: .inactive],
                         fetchedRange: range,
                         rateLimitedUntil: nil,
                         authError: false,
@@ -293,7 +293,7 @@ final class SyncEngineTests: XCTestCase {
                 .success(
                     ProviderFetchResult(
                         source: .github,
-                        days: [day: .active],
+                        days: [day: .inactive],
                         fetchedRange: range,
                         rateLimitedUntil: nil,
                         authError: false,
@@ -307,7 +307,7 @@ final class SyncEngineTests: XCTestCase {
                 .success(
                     ProviderFetchResult(
                         source: .leetcode,
-                        days: [day: .inactive],
+                        days: [day: .active],
                         fetchedRange: range,
                         rateLimitedUntil: nil,
                         authError: false,
@@ -323,7 +323,7 @@ final class SyncEngineTests: XCTestCase {
                 .github: { ScriptedProvider(source: .github, script: disabledGitHubScript) },
                 .leetcode: { ScriptedProvider(source: .leetcode, script: disabledLeetCodeScript) }
             ],
-            combinedRequiredSources: [.github],
+            combinedSources: [.github],
             sleepFunction: { _ in },
             jitterFunction: { _ in 0 }
         )
@@ -331,7 +331,7 @@ final class SyncEngineTests: XCTestCase {
         await disabledService.refreshNow(trigger: .manual)
 
         let disabledCombined = try disabledRepository.fetchActivityDayRecord(day: day, source: .combined)
-        XCTAssertEqual(disabledCombined?.status, .active)
+        XCTAssertEqual(disabledCombined?.status, .inactive)
 
         let enabledManager = try DatabaseManager(inMemory: true)
         let enabledRepository = SweatRepository(dbQueue: enabledManager.dbQueue)
@@ -340,7 +340,7 @@ final class SyncEngineTests: XCTestCase {
                 .success(
                     ProviderFetchResult(
                         source: .github,
-                        days: [day: .active],
+                        days: [day: .inactive],
                         fetchedRange: range,
                         rateLimitedUntil: nil,
                         authError: false,
@@ -354,7 +354,7 @@ final class SyncEngineTests: XCTestCase {
                 .success(
                     ProviderFetchResult(
                         source: .leetcode,
-                        days: [day: .inactive],
+                        days: [day: .active],
                         fetchedRange: range,
                         rateLimitedUntil: nil,
                         authError: false,
@@ -370,7 +370,7 @@ final class SyncEngineTests: XCTestCase {
                 .github: { ScriptedProvider(source: .github, script: enabledGitHubScript) },
                 .leetcode: { ScriptedProvider(source: .leetcode, script: enabledLeetCodeScript) }
             ],
-            combinedRequiredSources: [.github, .leetcode],
+            combinedSources: [.github, .leetcode],
             sleepFunction: { _ in },
             jitterFunction: { _ in 0 }
         )
@@ -378,7 +378,7 @@ final class SyncEngineTests: XCTestCase {
         await enabledService.refreshNow(trigger: .manual)
 
         let enabledCombined = try enabledRepository.fetchActivityDayRecord(day: day, source: .combined)
-        XCTAssertEqual(enabledCombined?.status, .inactive)
+        XCTAssertEqual(enabledCombined?.status, .active)
     }
 
     func testManualOverrideAffectsCombinedDuringSync() async throws {
@@ -398,7 +398,7 @@ final class SyncEngineTests: XCTestCase {
                 .success(
                     ProviderFetchResult(
                         source: .github,
-                        days: [day: .active],
+                        days: [day: .inactive],
                         fetchedRange: range,
                         rateLimitedUntil: nil,
                         authError: false,
@@ -412,6 +412,7 @@ final class SyncEngineTests: XCTestCase {
             repository: repository,
             clock: FixedClock(now: now),
             providerFactories: [.github: { ScriptedProvider(source: .github, script: githubScript) }],
+            combinedSources: [.github, .leetcode],
             sleepFunction: { _ in },
             jitterFunction: { _ in 0 }
         )

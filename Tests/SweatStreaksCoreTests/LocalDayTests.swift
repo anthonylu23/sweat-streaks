@@ -34,60 +34,67 @@ final class LocalDayTests: XCTestCase {
 
     func testCombinedStatusTruthTable() {
         XCTAssertEqual(CombinedStatusResolver.derive(github: .active, leetcode: .active), .active)
-        XCTAssertEqual(CombinedStatusResolver.derive(github: .active, leetcode: .inactive), .inactive)
-        XCTAssertEqual(CombinedStatusResolver.derive(github: .inactive, leetcode: .active), .inactive)
-        XCTAssertEqual(CombinedStatusResolver.derive(github: .unknown, leetcode: .active), .unknown)
+        XCTAssertEqual(CombinedStatusResolver.derive(github: .active, leetcode: .inactive), .active)
+        XCTAssertEqual(CombinedStatusResolver.derive(github: .inactive, leetcode: .active), .active)
+        XCTAssertEqual(CombinedStatusResolver.derive(github: .unknown, leetcode: .active), .active)
+        XCTAssertEqual(CombinedStatusResolver.derive(github: .inactive, leetcode: .inactive), .inactive)
+        XCTAssertEqual(CombinedStatusResolver.derive(github: .unknown, leetcode: .inactive), .unknown)
         XCTAssertEqual(CombinedStatusResolver.derive(github: .unknown, leetcode: .unknown), .unknown)
     }
 
-    func testCombinedStatusUsesRequiredSources() {
+    func testCombinedStatusUsesIncludedSources() {
         let statuses: [ActivitySource: DayStatus] = [
             .github: .active,
-            .leetcode: .unknown
+            .leetcode: .unknown,
+            .codex: .inactive
         ]
 
         XCTAssertEqual(
-            CombinedStatusResolver.derive(effectiveStatuses: statuses, requiredSources: [.github]),
+            CombinedStatusResolver.derive(effectiveStatuses: statuses, includedSources: [.github]),
             .active
         )
         XCTAssertEqual(
-            CombinedStatusResolver.derive(effectiveStatuses: statuses, requiredSources: [.github, .leetcode]),
+            CombinedStatusResolver.derive(effectiveStatuses: statuses, includedSources: [.github, .leetcode]),
+            .active
+        )
+        XCTAssertEqual(
+            CombinedStatusResolver.derive(effectiveStatuses: statuses, includedSources: [.leetcode, .codex]),
             .unknown
         )
         XCTAssertEqual(
-            CombinedStatusResolver.derive(effectiveStatuses: statuses, requiredSources: []),
+            CombinedStatusResolver.derive(effectiveStatuses: statuses, includedSources: []),
             .unknown
         )
     }
 
-    func testDefaultCombinedStatusRequiresAllCurrentProviders() {
+    func testDefaultCombinedStatusUsesAnyCurrentProviderActivity() {
         XCTAssertEqual(
             CombinedStatusResolver.derive(effectiveStatuses: [
-                .github: .active,
-                .leetcode: .active,
+                .github: .inactive,
+                .leetcode: .inactive,
                 .codex: .active,
-                .claudeCode: .active,
-                .cursor: .active
+                .claudeCode: .inactive,
+                .cursor: .inactive
             ]),
             .active
         )
         XCTAssertEqual(
             CombinedStatusResolver.derive(effectiveStatuses: [
-                .github: .active,
-                .leetcode: .active,
+                .github: .inactive,
+                .leetcode: .inactive,
                 .codex: .unknown,
-                .claudeCode: .active,
-                .cursor: .active
+                .claudeCode: .inactive,
+                .cursor: .inactive
             ]),
             .unknown
         )
         XCTAssertEqual(
             CombinedStatusResolver.derive(effectiveStatuses: [
-                .github: .active,
-                .leetcode: .active,
+                .github: .inactive,
+                .leetcode: .inactive,
                 .codex: .inactive,
-                .claudeCode: .active,
-                .cursor: .active
+                .claudeCode: .inactive,
+                .cursor: .inactive
             ]),
             .inactive
         )

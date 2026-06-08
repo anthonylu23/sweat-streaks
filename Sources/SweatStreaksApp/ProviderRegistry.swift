@@ -11,7 +11,7 @@ import SweatStreaksProviderLocalSupport
 @MainActor
 enum ProviderRegistry {
     static let currentProviderSources = ActivitySource.currentProviderSources
-    static let combinedRequiredSources = ActivitySource.combinedRequiredSources
+    static let defaultCombinedSources = ActivitySource.defaultCombinedSources
     static let defaultCodexPath = LocalProviderPathSettings.defaultCodexPath
     static let defaultClaudeCodePath = LocalProviderPathSettings.defaultClaudeCodePath
     static let defaultCursorPath = LocalProviderPathSettings.defaultCursorPath

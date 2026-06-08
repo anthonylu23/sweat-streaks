@@ -188,7 +188,7 @@ final class AppModel: ObservableObject {
         let syncService = DefaultSyncService(
             repository: repository,
             providerFactories: providerFactories,
-            combinedRequiredSources: trackedProviderSources
+            combinedSources: trackedProviderSources
         )
         await syncService.refreshNow(trigger: trigger)
 
@@ -509,7 +509,7 @@ final class AppModel: ObservableObject {
             }
             combinedDays[day] = CombinedStatusResolver.derive(
                 effectiveStatuses: effective,
-                requiredSources: trackedProviderSources
+                includedSources: trackedProviderSources
             )
         }
 
