@@ -5,6 +5,8 @@ import SweatStreaksProviderSupport
 public struct LeetCodeProvider: ActivityProvider {
     public let source: ActivitySource = .leetcode
 
+    private static let recentSubmissionLimit = 100
+
     private let username: String
     private let httpClient: HTTPClient
     private let endpoint: URL
@@ -25,10 +27,21 @@ public struct LeetCodeProvider: ActivityProvider {
     public func fetchActivityDays(range: ClosedRange<Date>) async throws -> ProviderFetchResult {
         let years = Self.years(in: range)
         var activeDays: Set<LocalDay> = []
+        var warning: String?
 
         for year in years {
             let response = try await fetchCalendar(year: year)
             activeDays.formUnion(response)
+        }
+
+        do {
+            let preciseRecentDays = try await fetchRecentSubmissionDays(range: range)
+            activeDays.formUnion(preciseRecentDays)
+            reconcileCurrentLocalDay(activeDays: &activeDays, preciseRecentDays: preciseRecentDays, range: range)
+        } catch ProviderError.rateLimited(let retryAfter) {
+            throw ProviderError.rateLimited(retryAfter: retryAfter)
+        } catch {
+            warning = "LeetCode recent submissions were unavailable; using profile calendar only."
         }
 
         var days = Self.inactiveDayMap(range: range)
@@ -44,7 +57,7 @@ public struct LeetCodeProvider: ActivityProvider {
             fetchedRange: range,
             rateLimitedUntil: nil,
             authError: false,
-            warning: nil
+            warning: warning
         )
     }
 
@@ -68,11 +81,56 @@ public struct LeetCodeProvider: ActivityProvider {
 
         let payload = LeetCodeGraphQLRequest(
             query: query,
-            variables: LeetCodeGraphQLVariables(username: username, year: year),
+            variables: LeetCodeCalendarVariables(username: username, year: year),
             operationName: "userProfileCalendar"
         )
         request.httpBody = try JSONEncoder().encode(payload)
 
+        let parsed = try await sendGraphQLRequest(request)
+
+        guard let calendar = parsed.data?.matchedUser?.userCalendar?.submissionCalendar else {
+            throw ProviderError.unknown(message: "LeetCode user calendar was unavailable.")
+        }
+
+        return try Self.parseSubmissionCalendar(calendar)
+    }
+
+    private func fetchRecentSubmissionDays(range: ClosedRange<Date>) async throws -> Set<LocalDay> {
+        try ProviderHTTP.requireHTTPS(endpoint: endpoint, providerName: "LeetCode")
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("SweatStreaks/1.0", forHTTPHeaderField: "User-Agent")
+
+        let query = """
+        query recentSubmissions($username: String!, $limit: Int!) {
+          recentSubmissionList(username: $username, limit: $limit) {
+            timestamp
+          }
+        }
+        """
+
+        let payload = LeetCodeGraphQLRequest(
+            query: query,
+            variables: LeetCodeRecentSubmissionVariables(username: username, limit: Self.recentSubmissionLimit),
+            operationName: "recentSubmissions"
+        )
+        request.httpBody = try JSONEncoder().encode(payload)
+
+        let parsed = try await sendGraphQLRequest(request)
+        guard let recentSubmissions = parsed.data?.recentSubmissionList else {
+            throw ProviderError.unknown(message: "LeetCode recent submissions were unavailable.")
+        }
+
+        return Self.parseRecentSubmissionDays(
+            recentSubmissions.map(\.timestamp),
+            range: range,
+            timeZone: .current
+        )
+    }
+
+    private func sendGraphQLRequest(_ request: URLRequest) async throws -> LeetCodeGraphQLResponse {
         let (data, response): (Data, HTTPURLResponse)
         do {
             (data, response) = try await httpClient.send(request)
@@ -101,11 +159,7 @@ public struct LeetCodeProvider: ActivityProvider {
             throw ProviderError.unknown(message: "LeetCode returned a GraphQL error.")
         }
 
-        guard let calendar = parsed.data?.matchedUser?.userCalendar?.submissionCalendar else {
-            throw ProviderError.unknown(message: "LeetCode user calendar was unavailable.")
-        }
-
-        return try Self.parseSubmissionCalendar(calendar)
+        return parsed
     }
 
     public static func parseSubmissionCalendar(
@@ -134,6 +188,44 @@ public struct LeetCodeProvider: ActivityProvider {
         return days
     }
 
+    public static func parseRecentSubmissionDays(
+        _ timestamps: [String],
+        range: ClosedRange<Date>,
+        timeZone: TimeZone = .current
+    ) -> Set<LocalDay> {
+        var days: Set<LocalDay> = []
+        for timestamp in timestamps {
+            guard let epoch = TimeInterval(timestamp) else {
+                continue
+            }
+
+            let date = Date(timeIntervalSince1970: epoch)
+            guard date >= range.lowerBound && date <= range.upperBound else {
+                continue
+            }
+
+            days.insert(LocalDay.from(date: date, in: timeZone))
+        }
+        return days
+    }
+
+    private func reconcileCurrentLocalDay(
+        activeDays: inout Set<LocalDay>,
+        preciseRecentDays: Set<LocalDay>,
+        range: ClosedRange<Date>
+    ) {
+        let currentLocalDay = LocalDay.from(date: now(), in: .current)
+        guard Self.range(range, contains: currentLocalDay, timeZone: .current) else {
+            return
+        }
+
+        if preciseRecentDays.contains(currentLocalDay) {
+            activeDays.insert(currentLocalDay)
+        } else {
+            activeDays.remove(currentLocalDay)
+        }
+    }
+
     private static func inactiveDayMap(range: ClosedRange<Date>, timeZone: TimeZone = .current) -> [LocalDay: DayStatus] {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
@@ -158,17 +250,28 @@ public struct LeetCodeProvider: ActivityProvider {
         let endYear = calendar.component(.year, from: range.upperBound)
         return Array(startYear...endYear)
     }
+
+    private static func range(_ range: ClosedRange<Date>, contains day: LocalDay, timeZone: TimeZone) -> Bool {
+        let startDay = LocalDay.from(date: range.lowerBound, in: timeZone)
+        let endDay = LocalDay.from(date: range.upperBound, in: timeZone)
+        return day >= startDay && day <= endDay
+    }
 }
 
-private struct LeetCodeGraphQLRequest: Encodable {
+private struct LeetCodeGraphQLRequest<Variables: Encodable>: Encodable {
     let query: String
-    let variables: LeetCodeGraphQLVariables
+    let variables: Variables
     let operationName: String
 }
 
-private struct LeetCodeGraphQLVariables: Encodable {
+private struct LeetCodeCalendarVariables: Encodable {
     let username: String
     let year: Int
+}
+
+private struct LeetCodeRecentSubmissionVariables: Encodable {
+    let username: String
+    let limit: Int
 }
 
 private struct LeetCodeGraphQLResponse: Decodable {
@@ -178,6 +281,7 @@ private struct LeetCodeGraphQLResponse: Decodable {
 
 private struct LeetCodeGraphQLData: Decodable {
     let matchedUser: LeetCodeMatchedUser?
+    let recentSubmissionList: [LeetCodeRecentSubmission]?
 }
 
 private struct LeetCodeMatchedUser: Decodable {
@@ -186,6 +290,10 @@ private struct LeetCodeMatchedUser: Decodable {
 
 private struct LeetCodeUserCalendar: Decodable {
     let submissionCalendar: String?
+}
+
+private struct LeetCodeRecentSubmission: Decodable {
+    let timestamp: String
 }
 
 private struct LeetCodeGraphQLError: Decodable {

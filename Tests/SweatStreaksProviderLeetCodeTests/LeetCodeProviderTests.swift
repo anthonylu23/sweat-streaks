@@ -51,6 +51,112 @@ final class LeetCodeProviderTests: XCTestCase {
         XCTAssertEqual(days, [LocalDay(year: 2026, month: 5, day: 12)])
     }
 
+    func testRecentSubmissionsMapLateEveningUTCNextDayToCurrentLocalDay() async throws {
+        let timeZone = TimeZone(identifier: "America/New_York")!
+        let originalTimeZone = NSTimeZone.default
+        NSTimeZone.default = timeZone
+        addTeardownBlock {
+            NSTimeZone.default = originalTimeZone
+        }
+
+        let utcNextDayEpoch = Self.epochUTC(year: 2026, month: 6, day: 3)
+        let recentSubmissionEpoch = Self.epoch(
+            year: 2026,
+            month: 6,
+            day: 2,
+            hour: 21,
+            minute: 52,
+            second: 34,
+            timeZone: timeZone
+        )
+
+        let client = LeetCodeStubHTTPClient { request in
+            switch Self.operationName(from: request) {
+            case "userProfileCalendar":
+                return (
+                    Data(Self.calendarResponse(epoch: utcNextDayEpoch, count: 2).utf8),
+                    Self.makeResponse(status: 200)
+                )
+            case "recentSubmissions":
+                return (
+                    Data(Self.recentSubmissionsResponse(timestamps: [recentSubmissionEpoch]).utf8),
+                    Self.makeResponse(status: 200)
+                )
+            default:
+                XCTFail("Unexpected LeetCode operation")
+                return (Data("{}".utf8), Self.makeResponse(status: 400))
+            }
+        }
+
+        let provider = LeetCodeProvider(
+            username: "me",
+            httpClient: client,
+            now: {
+                Self.date(year: 2026, month: 6, day: 2, hour: 21, minute: 55, timeZone: timeZone)
+            }
+        )
+
+        let start = Self.date(year: 2026, month: 6, day: 2, timeZone: timeZone)
+        let end = Self.date(year: 2026, month: 6, day: 2, hour: 23, minute: 59, second: 59, timeZone: timeZone)
+        let result = try await provider.fetchActivityDays(range: start...end)
+
+        XCTAssertEqual(result.days[LocalDay(year: 2026, month: 6, day: 2)], .active)
+        XCTAssertNil(result.days[LocalDay(year: 2026, month: 6, day: 3)])
+    }
+
+    func testRecentSubmissionsPreventYesterdayActivityFromCarryingIntoNewLocalDay() async throws {
+        let timeZone = TimeZone(identifier: "America/New_York")!
+        let originalTimeZone = NSTimeZone.default
+        NSTimeZone.default = timeZone
+        addTeardownBlock {
+            NSTimeZone.default = originalTimeZone
+        }
+
+        let utcNextDayEpoch = Self.epochUTC(year: 2026, month: 6, day: 3)
+        let recentSubmissionEpoch = Self.epoch(
+            year: 2026,
+            month: 6,
+            day: 2,
+            hour: 21,
+            minute: 52,
+            second: 34,
+            timeZone: timeZone
+        )
+
+        let client = LeetCodeStubHTTPClient { request in
+            switch Self.operationName(from: request) {
+            case "userProfileCalendar":
+                return (
+                    Data(Self.calendarResponse(epoch: utcNextDayEpoch, count: 2).utf8),
+                    Self.makeResponse(status: 200)
+                )
+            case "recentSubmissions":
+                return (
+                    Data(Self.recentSubmissionsResponse(timestamps: [recentSubmissionEpoch]).utf8),
+                    Self.makeResponse(status: 200)
+                )
+            default:
+                XCTFail("Unexpected LeetCode operation")
+                return (Data("{}".utf8), Self.makeResponse(status: 400))
+            }
+        }
+
+        let provider = LeetCodeProvider(
+            username: "me",
+            httpClient: client,
+            now: {
+                Self.date(year: 2026, month: 6, day: 3, hour: 0, minute: 30, timeZone: timeZone)
+            }
+        )
+
+        let start = Self.date(year: 2026, month: 6, day: 2, timeZone: timeZone)
+        let end = Self.date(year: 2026, month: 6, day: 3, hour: 23, minute: 59, second: 59, timeZone: timeZone)
+        let result = try await provider.fetchActivityDays(range: start...end)
+
+        XCTAssertEqual(result.days[LocalDay(year: 2026, month: 6, day: 2)], .active)
+        XCTAssertEqual(result.days[LocalDay(year: 2026, month: 6, day: 3)], .inactive)
+    }
+
     func testRateLimitResponseThrowsRateLimitedError() async {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let client = LeetCodeStubHTTPClient { _ in
@@ -138,16 +244,90 @@ final class LeetCodeProviderTests: XCTestCase {
         Int(date(year: year, month: month, day: day).timeIntervalSince1970)
     }
 
+    private static func epoch(
+        year: Int,
+        month: Int,
+        day: Int,
+        hour: Int,
+        minute: Int,
+        second: Int,
+        timeZone: TimeZone
+    ) -> Int {
+        Int(
+            date(
+                year: year,
+                month: month,
+                day: day,
+                hour: hour,
+                minute: minute,
+                second: second,
+                timeZone: timeZone
+            ).timeIntervalSince1970
+        )
+    }
+
     private static func epochUTC(year: Int, month: Int, day: Int) -> Int {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         return Int(calendar.date(from: DateComponents(timeZone: calendar.timeZone, year: year, month: month, day: day))!.timeIntervalSince1970)
     }
 
-    private static func date(year: Int, month: Int, day: Int) -> Date {
+    private static func date(
+        year: Int,
+        month: Int,
+        day: Int,
+        hour: Int = 0,
+        minute: Int = 0,
+        second: Int = 0,
+        timeZone: TimeZone = .current
+    ) -> Date {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
-        return calendar.date(from: DateComponents(timeZone: calendar.timeZone, year: year, month: month, day: day))!
+        calendar.timeZone = timeZone
+        return calendar.date(
+            from: DateComponents(
+                timeZone: calendar.timeZone,
+                year: year,
+                month: month,
+                day: day,
+                hour: hour,
+                minute: minute,
+                second: second
+            )
+        )!
+    }
+
+    private static func operationName(from request: URLRequest) -> String {
+        guard let body = request.httpBody,
+              let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+              let operationName = json["operationName"] as? String else {
+            return ""
+        }
+        return operationName
+    }
+
+    private static func calendarResponse(epoch: Int, count: Int) -> String {
+        """
+        {
+          "data": {
+            "matchedUser": {
+              "userCalendar": {
+                "submissionCalendar": "{\\"\(epoch)\\": \(count)}"
+              }
+            }
+          }
+        }
+        """
+    }
+
+    private static func recentSubmissionsResponse(timestamps: [Int]) -> String {
+        let items = timestamps.map { #"{"timestamp": "\#($0)"}"# }.joined(separator: ",")
+        return """
+        {
+          "data": {
+            "recentSubmissionList": [\(items)]
+          }
+        }
+        """
     }
 }
 
