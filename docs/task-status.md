@@ -94,7 +94,7 @@
   - Added `ClaudeCodeProvider` for `~/.claude/history.jsonl` and `~/.claude/projects`.
   - Added settings toggles, status rows, heatmaps, menu-bar visibility controls, and manual overrides for both providers.
   - Updated SQLite source constraints and repository override validation for the new provider IDs.
-  - Updated Combined semantics so GitHub, LeetCode, Codex, and Claude Code are all required.
+  - Expanded Combined source coverage to GitHub, LeetCode, Codex, and Claude Code.
   - Added provider, persistence, sync, menu-bar, and combined-status tests.
   - Validation run completed: `swift test`, `swift build`, and `swift run SweatStreaksApp` compile/launch sanity check.
 - Notes:
@@ -374,3 +374,33 @@
   - Developer ID signing, hardened runtime, notarization, and universal builds remain the main public-install polish items.
   - Review committed screenshots once more before broad posting, because public assets can intentionally include account names but should not expose sensitive local paths or private provider errors.
   - Consider adding a Code of Conduct and GitHub issue templates before inviting wider community contributions.
+
+## Phase 24: Combined Activity Semantics Fix
+- Status: Complete
+- Completed:
+  - Diagnosed the installed app as running and syncing successfully, with Combined appearing inactive because enabled-provider derivation still required every tracked provider to be active.
+  - Updated Combined derivation so any active enabled provider marks Combined active.
+  - Preserved unknown behavior when no enabled provider is active and at least one enabled provider is unknown.
+  - Kept Combined inactive only when every enabled provider is inactive.
+  - Updated current-streak anchoring so an inactive source override only resets Combined immediately when Combined itself is inactive; Combined active still anchors to today.
+  - Renamed combined-source plumbing from required sources to included sources where behavior changed.
+  - Updated README and architecture docs for the new Combined behavior.
+- Validation:
+  - `swift test --filter 'LocalDayTests|SyncEngineTests|CurrentStreakAnchorPolicyTests'`
+  - `swift test`
+  - `swift build`
+  - `swift run SweatStreaksApp` compile/launch check, then stopped the launched SwiftPM process.
+
+## Phase 25: LeetCode Local-Day Precision
+- Status: Complete in source
+- Completed:
+  - Diagnosed late-evening LeetCode activity showing as inactive because LeetCode's profile calendar had already rolled the submission count into the next UTC day bucket.
+  - Kept UTC bucket handling for historical profile-calendar data so existing US timezone protection remains intact.
+  - Added a public recent-submissions overlay that maps exact submission timestamps into local days for the fetched range.
+  - Reconciled the current local day against exact recent timestamps when available so yesterday's late activity does not falsely carry into the next local day after midnight.
+  - Added regression tests for EDT late-evening submissions and after-midnight carryover.
+- Validation:
+  - `swift test --filter LeetCodeProviderTests`
+  - `swift test`
+  - `swift build`
+  - `swift run SweatStreaksApp` compile/launch check, then stopped the source-built process.

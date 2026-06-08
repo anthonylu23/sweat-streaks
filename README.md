@@ -60,8 +60,8 @@ GitHub PATs are stored in macOS Keychain and are not stored in SQLite or loaded 
 3. Set `LeetCode Username`.
 4. Click `Save`, then `Refresh Now`.
 
-LeetCode sync uses LeetCode's public, unofficial GraphQL profile calendar. If that response shape changes, the app keeps last known values and surfaces the provider error.
-Submission-calendar epoch keys are interpreted as UTC day buckets so local timezones do not shift activity to the previous day.
+LeetCode sync uses LeetCode's public, unofficial GraphQL profile calendar plus recent-submission timestamps for current local-day accuracy. If those response shapes change, the app keeps last known values and surfaces the provider error.
+Submission-calendar epoch keys are interpreted as UTC day buckets so local timezones do not shift historical activity to the previous day; recent submissions use exact timestamps so late-evening local activity still counts for the local day it happened.
 
 ### Local AI Tools
 1. Open app settings.
@@ -84,8 +84,8 @@ JSONL logs are streamed line by line and only timestamp fields are parsed for ac
 - Retry policy uses up to 3 attempts with backoff.
 - Rate-limited providers enter a cooldown state.
 - Stale detection warns when last successful sync is older than 24 hours.
-- Combined days are derived from enabled provider statuses after manual overrides.
-- Current streaks use an end-of-day grace rule: if today's provider status is not active yet, the displayed current streak is calculated through yesterday until local midnight. Manual inactive overrides reset immediately.
+- Combined days are derived from enabled provider statuses after manual overrides. A Combined day is active when any enabled provider is active, inactive when every enabled provider is inactive, and unknown when no enabled provider is active but at least one enabled provider is unknown.
+- Current streaks use an end-of-day grace rule: if today's provider status is not active yet, the displayed current streak is calculated through yesterday until local midnight. Manual inactive overrides reset immediately when they make that source, or Combined, inactive.
 - Settings include provider diagnostics with recent sync runs, persisted sync state, and local-provider evidence counts by configured root/type.
 - Local-provider diagnostics show counts and latest evidence days, not matched file paths or private content.
 

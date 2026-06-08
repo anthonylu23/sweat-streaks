@@ -16,7 +16,7 @@
 - `SweatStreaksProviderGitHub`
   - GitHub GraphQL contribution-calendar provider implementation and response DTOs.
 - `SweatStreaksProviderLeetCode`
-  - LeetCode public GraphQL calendar provider implementation and response DTOs.
+  - LeetCode public GraphQL calendar and recent-submission provider implementation and response DTOs.
 - `SweatStreaksProviderLocalSupport`
   - Shared local JSONL file discovery, timestamp parsing, local-day status map helpers, and privacy-preserving evidence diagnostics.
 - `SweatStreaksProviderCodex`
@@ -52,7 +52,7 @@ SweatStreaksCore
 - Provider implementations are separate SwiftPM modules; the app only constructs them through `ProviderRegistry`.
 - `SweatStreaksProviderSupport` owns shared HTTP mechanics so provider modules do not depend on each other.
 - `SweatStreaksProviderLocalSupport` owns shared local timestamp-to-day mapping mechanics so local providers do not read auth tokens or depend on remote APIs.
-- Combined status accepts an explicit required-source list. App-driven sync/recompute derives that list from enabled provider tracking toggles, so disabled providers are omitted from the Combined requirement.
+- Combined status accepts an explicit included-source list. App-driven sync/recompute derives that list from enabled provider tracking toggles, so disabled providers are omitted from Combined derivation.
 
 ## Data Model
 - `activity_days`
@@ -68,12 +68,13 @@ SweatStreaksCore
 
 ## Data Rules
 - Local day format is strict ISO `YYYY-MM-DD`.
-- Combined status derives from effective required-source statuses after manual overrides.
+- Combined status derives from effective included-source statuses after manual overrides. It is active when any included source is active, inactive when every included source is inactive, and unknown when no included source is active but at least one included source is unknown.
 - Unknown statuses do not auto-convert to inactive.
 - Current streak display uses an app-level end-of-day grace anchor: provider inactive/unknown today calculates current streak through yesterday, while manual inactive overrides anchor to today and reset immediately.
 - GitHub PAT is stored in Keychain, not in SQLite settings, and is not loaded back into the settings UI.
 - LeetCode uses the public profile calendar and fills fetched-but-missing days as inactive.
 - LeetCode submission-calendar epoch keys are interpreted as UTC day buckets before mapping to `LocalDay`.
+- LeetCode recent-submission timestamps are overlaid for the fetched range so the current local day uses exact submission times. This prevents late-evening activity in US timezones from being treated as tomorrow because the profile calendar has already rolled into the next UTC bucket.
 - Codex uses local JSONL logs under the configured Codex path, defaulting to `~/.codex`, and scans `sessions` plus `archived_sessions`.
 - Claude Code uses local JSONL logs under the configured Claude Code path, defaulting to `~/.claude`, and scans `history.jsonl` plus `projects`.
 - Cursor uses AI usage evidence under configured Cursor paths, defaulting to `~/.cursor` and `~/Library/Application Support/Cursor`, including local agent transcript metadata, worker logs, chat store metadata, `ai-tracking/ai-code-tracking.db`, and global `aiCodeTracking.dailyStats` keys.
@@ -100,23 +101,28 @@ SweatStreaksCore
 6. LeetCode provider calls the public profile calendar query and maps submission-calendar days:
    - timestamp count `> 0` -> `active`
    - fetched days missing from the submission calendar -> `inactive`
-7. Codex and Claude Code providers stream local JSONL log timestamps and map days:
+7. LeetCode provider overlays public recent-submission timestamps for the fetched range:
+   - exact submission timestamp in a local day -> `active`
+   - current local day is reconciled against exact recent timestamps when available, so a UTC calendar bucket cannot falsely carry yesterday's late activity into today
+8. Codex and Claude Code providers stream local JSONL log timestamps and map days:
    - one or more timestamps in a local day -> `active`
    - fetched days with no timestamps -> `inactive`
-8. Cursor provider scans local AI usage timestamps/metadata and maps days:
+9. Cursor provider scans local AI usage timestamps/metadata and maps days:
    - one or more evidence items in a local day -> `active`
    - fetched days with no evidence -> `inactive`
-9. Sync engine applies retry/backoff, auth/rate-limit classification, local-day window clamping, cooldown/stale state updates, and records `sync_runs` + `provider_states`.
-10. Repository stores provider `activity_days`; combined status is derived from effective enabled-source statuses after manual overrides and persisted as `combined`.
-11. App model recomputes UI status/metrics from persisted source days plus manual overrides.
-12. App model chooses a current-streak anchor per source before computing metrics:
+10. Sync engine applies retry/backoff, auth/rate-limit classification, local-day window clamping, cooldown/stale state updates, and records `sync_runs` + `provider_states`.
+11. Repository stores provider `activity_days`; combined status is derived from effective enabled-source statuses after manual overrides and persisted as `combined`.
+12. App model recomputes UI status/metrics from persisted source days plus manual overrides.
+13. App model chooses a current-streak anchor per source before computing metrics:
    - active today or manual active today -> today
    - provider inactive/unknown today -> yesterday
    - manual inactive today -> today
-   - Combined manual inactive reset if either source has a manual inactive override today
-13. App model publishes square timelines for GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined activity; the popover currently displays the latest 16 weeks.
-14. App model refreshes provider diagnostics after sync/settings changes and when Settings opens. Diagnostics include recent sync runs, provider state, and local evidence summaries for tracked local providers.
-15. Notification engine sends at most one local risk notification per day when combined is not active after the configured reminder hour. Notification APIs are skipped when the executable is not running from an `.app` bundle, so direct SwiftPM executable launches do not crash.
+   - Combined active today -> today
+   - Combined inactive because of a manual inactive override -> today
+   - Combined inactive/unknown without a manual inactive override -> yesterday
+14. App model publishes square timelines for GitHub, LeetCode, Codex, Claude Code, Cursor, and Combined activity; the popover currently displays the latest 16 weeks.
+15. App model refreshes provider diagnostics after sync/settings changes and when Settings opens. Diagnostics include recent sync runs, provider state, and local evidence summaries for tracked local providers.
+16. Notification engine sends at most one local risk notification per day when combined is not active after the configured reminder hour. Notification APIs are skipped when the executable is not running from an `.app` bundle, so direct SwiftPM executable launches do not crash.
 
 ## Distribution Flow
 1. Pushes to `main` run GitHub Actions CI. After Swift validation passes, the release job computes the next stable patch tag with `scripts/next-release-version.sh`.
@@ -134,7 +140,7 @@ SweatStreaksCore
 - The GitHub status row exposes the latest contribution-calendar day/status as hover help so users can distinguish raw commits from GitHub-counted contributions.
 - Settings are hosted in a reusable `NSWindow` with an `NSHostingController`, which avoids relying on SwiftUI's settings responder-chain action from a menu-bar-only surface.
 - Settings include a general `Start on login` toggle backed by `LaunchAtLoginManager`, which wraps `SMAppService.mainApp` registration/unregistration behind a testable protocol.
-- Settings persist independent tracking toggles for GitHub, LeetCode, Codex, Claude Code, and Cursor. They also persist local provider root paths for Codex, Claude Code, and Cursor; folder picker controls choose those roots, reset controls restore documented defaults, and blank stored values are normalized back to defaults before save. `ProviderRegistry` only builds sync factories for providers whose tracking toggle and required account/local configuration are present, and the app passes the same enabled-source list as the Combined required-source list, so a saved username or PAT can remain in storage while provider activity sync is disabled.
+- Settings persist independent tracking toggles for GitHub, LeetCode, Codex, Claude Code, and Cursor. They also persist local provider root paths for Codex, Claude Code, and Cursor; folder picker controls choose those roots, reset controls restore documented defaults, and blank stored values are normalized back to defaults before save. `ProviderRegistry` only builds sync factories for providers whose tracking toggle and required account/local configuration are present, and the app passes the same enabled-source list into Combined derivation, so a saved username or PAT can remain in storage while provider activity sync is disabled.
 - GitHub, LeetCode, Codex, Claude Code, and Cursor each render as separate settings sections with the same provider header and connection status pattern.
 - Codex and Claude Code expose one folder picker each. Cursor exposes both its `~/.cursor` data root and its `~/Library/Application Support/Cursor` app-support root because usage evidence can live in either location.
 - Settings include a Provider Diagnostics section with expandable rows for each provider. Rows show tracked/disabled state, persisted provider sync state, up to five recent sync runs, and local evidence summaries for tracked local providers.
@@ -145,7 +151,7 @@ SweatStreaksCore
 ## Remaining Architecture Work
 1. Add Developer ID signing, hardened runtime, notarization, and universal arm64/x86_64 packaging.
 2. Replace the current simple manual override menu with a richer editor for date selection, notes, and audit history.
-3. Add a LeetCode fallback adapter if the public GraphQL calendar becomes unreliable.
+3. Add a LeetCode fallback adapter if the public GraphQL calendar or recent-submission query becomes unreliable.
 4. Add UI smoke tests around menu bar state, settings, and override flows.
 5. Consider extracting provider diagnostics into a dedicated window if the Settings section becomes too dense.
 6. Consider preserving session counts or token/cost metrics separately from active-day status if product needs grow.

@@ -11,13 +11,14 @@
 - Confirmed the latest GitHub Release and Homebrew cask both point at v0.1.5.
 
 ## Immediate Validation
+- After publishing the next Homebrew release, upgrade the installed app and confirm GitHub/LeetCode inactive plus Codex active produces an active Combined status.
 - Run the app with real GitHub and LeetCode usernames.
 - Verify GitHub and LeetCode tracking toggles suppress sync while preserving saved usernames/PAT state, then resume syncing when re-enabled.
 - Verify Cursor tracking against your real local Cursor AI history and confirm chat/agent/code-assist activity matches the streak behavior you want.
 - Verify Codex, Claude Code, and Cursor custom path settings against real alternate directories, including the Cursor app-support path.
 - Verify `Start on login` registers and unregisters the bundled app in macOS Login Items on a real user account.
 - Verify the compact popover on a real menu bar display with all providers enabled, especially segmented-control label fit and heatmap month-label spacing now that Cursor adds a sixth source.
-- Verify LeetCode's public calendar returns expected recent days for the target account.
+- Verify the installed app after the next release shows late-evening LeetCode submissions on the same local day, including the UTC-boundary case where the profile calendar has rolled into tomorrow.
 - Confirm macOS notification permission flow from a bundled app launch.
 - Verify settings-window keyboard focus from the menu-bar-only accessory app on a fresh packaged install.
 
@@ -29,7 +30,7 @@
 - Add a richer manual override editor for arbitrary dates, custom notes, and audit review.
 - Add UI smoke tests for settings window focus/text entry, settings save, refresh, provider-state display, and override toggles.
 - Validate the Settings provider diagnostics section against real provider data and decide whether it should move into a dedicated window.
-- Add a LeetCode fallback adapter if the public GraphQL profile calendar proves unreliable.
+- Add a LeetCode fallback adapter if the public GraphQL profile calendar or recent-submission query proves unreliable.
 - Add richer local-provider diagnostics only if counts/latest-day summaries are insufficient during real-world validation.
 
 ## Product Polish
